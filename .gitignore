@@ -1,0 +1,4 @@
+tensorboard/**
+submissions/**
+.idea
+*.iml
