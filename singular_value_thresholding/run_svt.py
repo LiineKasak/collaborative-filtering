@@ -1,3 +1,7 @@
+import sys
+sys.path.append('/Users/veronique/Documents/ETHZ/Master/2. Semester/CIL/Project/collaborative-filtering/')  # add local path to the project here
+
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -20,19 +24,18 @@ DATA_PATH = '/Users/veronique/Documents/ETHZ/Master/2. Semester/CIL/Project/coll
 TRAIN_SIZE = 0.9  # size of training set
 MAX_ITERATIONS = 50  # max number of iteration for svt and asvt
 
-# After some experimenting, I find that a should be small, while B should be relatively larger.
 
+# After some experimenting, I find that a should be small, while B should be relatively larger.
 def find_asvt_parameters(data, mask, test_users, test_movies, test_predictions):
     a1 = np.sum(mask) / np.prod(data.shape)
     b1 = np.prod(data.shape) * 0.6
-
 
     best_a = 1
     best_b = 1
     best_score = 10000000000
 
-    for a in tqdm([a1/100, a1/10, a1, a1*10], desc='cross-validation', leave=False):
-        for b in tqdm([b1/100, b1, b1 * 10], desc='cross-validation', leave=False):
+    for a in tqdm([a1 / 100, a1 / 10, a1, a1 * 10], desc='cross-validation', leave=False):
+        for b in tqdm([b1 / 100, b1, b1 * 10], desc='cross-validation', leave=False):
             Y = asvt(input_matrix=data, mask=mask, max_iterations=MAX_ITERATIONS, a=a, b=b, disable=True)
             predictions = data_processing.extract_prediction_from_full_matrix(Y, test_users, test_movies)
             score = data_processing.get_score(predictions, test_predictions)
@@ -43,8 +46,8 @@ def find_asvt_parameters(data, mask, test_users, test_movies, test_predictions):
                 best_b = b
                 print("new best: ", best_score, " where a = ", best_a, ", b = ", best_b)
 
-
     print("best score:", best_score, " where a = ", best_a, ", b = ", best_b)
+
 
 def score_svt(data, mask, test_users, test_movies, test_predictions):
     Y_svt = svt(input_matrix=data, mask=mask, max_iterations=MAX_ITERATIONS)
@@ -82,11 +85,11 @@ def main():
 
     # find_asvt_parameters(data, mask, test_users, test_movies, test_predictions)
 
-    a1 = np.sum(mask) / (np.prod(data.shape)*100)
+    a1 = np.sum(mask) / (np.prod(data.shape) * 100)
     b1 = np.prod(data.shape) * 0.6 / 100
 
-    print('ASVT error was: ', score_asvt(data, mask, test_users, test_movies, test_predictions, a1, b1))
     print('SVD error was: ', score_svd(data, mask, test_users, test_movies, test_predictions))
+    print('ASVT error was: ', score_asvt(data, mask, test_users, test_movies, test_predictions, a1, b1))
     print('SVT error was: ', score_svt(data, mask, test_users, test_movies, test_predictions))
 
 
