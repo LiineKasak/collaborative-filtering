@@ -45,6 +45,7 @@ def svt(input_matrix, mask, max_iterations, eps=0.10, disable=False):
         recon_error = np.linalg.norm(map_to_omega(X - input_matrix, mask)) / np.linalg.norm(map_to_omega(input_matrix, mask))
 
         if recon_error < eps:
+            print("svt terminated early, at k = ", k)
             break
 
     return X
@@ -66,6 +67,7 @@ def asvt(input_matrix, mask, max_iterations, a, b, eps=0.10, disable=False):
         recon_error = np.linalg.norm(map_to_omega(X - input_matrix, mask)) / np.linalg.norm(map_to_omega(input_matrix, mask))
 
         if recon_error < eps:
+            print("asvt terminated early, at k = ", k)
             break
 
     return X

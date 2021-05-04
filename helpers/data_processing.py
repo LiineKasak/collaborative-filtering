@@ -3,9 +3,16 @@
 from sklearn.metrics import mean_squared_error
 import math
 import numpy as np
+import pandas as pd
 
 number_of_users, number_of_movies = (10000, 1000)  # todo: want this as argument?
 
+
+def get_data_statistics(predictions):
+    mean = np.nanmean(predictions)
+    var = np.nanvar(predictions)
+
+    return mean, var
 
 def rmse(x, y):
     return math.sqrt(mean_squared_error(x, y))
