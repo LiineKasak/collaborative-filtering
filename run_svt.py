@@ -1,6 +1,14 @@
 import sys
-sys.path.append('/Users/veronique/Documents/ETHZ/Master/2. Semester/CIL/Project/collaborative-filtering/')  # add local path to the project here
+import os
+from pathlib import Path
+directory = Path(__file__).parent
 
+
+directory_path = os.path.abspath(directory)
+data_path = os.path.join(directory_path, "/data/data_train.csv")
+
+print("directory: ", directory_path, "       Data path: ", data_path)
+sys.path.append(directory_path)  # add local path to the project here
 
 import numpy as np
 import pandas as pd
@@ -18,11 +26,17 @@ from tqdm import tqdm
 #       SVD error was:  4.016538365960446
 #       SVT error was:  1.9620087568030429
 
+directory = Path(__file__)
+data_path = os.path.join(directory, "../data/data_train.csv")
 
+print("directory: ", directory, "       Data path: ", data_path)
+sys.path.append(directory)  # add local path to the project here
 # path to the train file
-DATA_PATH = '/Users/veronique/Documents/ETHZ/Master/2. Semester/CIL/Project/collaborative-filtering/data/data_train.csv'
+DATA_PATH = "data/test.csv"
+print("directory: ", directory)
+
 TRAIN_SIZE = 0.9  # size of training set
-MAX_ITERATIONS = 50  # max number of iteration for svt and asvt
+MAX_ITERATIONS = 100  # max number of iteration for svt and asvt
 
 
 # After some experimenting, I find that a should be small, while B should be relatively larger.
@@ -50,7 +64,7 @@ def find_asvt_parameters(data, mask, test_users, test_movies, test_predictions):
 
 
 def score_svt(data, mask, test_users, test_movies, test_predictions):
-    Y_svt = svt(input_matrix=data, mask=mask, max_iterations=MAX_ITERATIONS)
+    Y_svt = svt(input_matrix=data, mask=mask, max_iterations=MAX_ITERATIONS, disable=True)
 
     predictions = data_processing.extract_prediction_from_full_matrix(Y_svt, test_users, test_movies)
 
@@ -59,7 +73,7 @@ def score_svt(data, mask, test_users, test_movies, test_predictions):
 
 
 def score_asvt(data, mask, test_users, test_movies, test_predictions, a, b):
-    Y_asvt = asvt(input_matrix=data, mask=mask, max_iterations=MAX_ITERATIONS, a=a, b=b)
+    Y_asvt = asvt(input_matrix=data, mask=mask, max_iterations=MAX_ITERATIONS, a=a, b=b, disable=True)
     predictions = data_processing.extract_prediction_from_full_matrix(Y_asvt, test_users, test_movies)
     rmse_asvt = data_processing.get_score(predictions, test_predictions)
     return rmse_asvt
@@ -71,7 +85,7 @@ def score_svd(data, mask, test_users, test_movies, test_predictions):
     rmse_svd = data_processing.get_score(predictions, test_predictions)
     return rmse_svd
 
-
+#
 def main():
     data_pd = pd.read_csv(DATA_PATH)
     train_size = TRAIN_SIZE
