@@ -1,22 +1,23 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from tqdm import tqdm
+
+# add to path such that we can import helpers etc.
 import sys
 import os
 from pathlib import Path
 directory = Path(__file__).parent
-
-
 directory_path = os.path.abspath(directory)
-data_path = os.path.join(directory_path, "/data/data_train.csv")
+DATA_PATH = directory_path+'/data/data_train.csv'
 
-print("directory: ", directory_path, "       Data path: ", data_path)
-sys.path.append(directory_path)  # add local path to the project here
+print("directory: ", directory_path, "       Data path: ", DATA_PATH)
+sys.path.append(directory_path)
 
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
+
 from helpers import data_processing
-from singular_value_thresholding.svt import svt, asvt, svd_completion
+from src.svt import svt, asvt, svd_completion
 
-from tqdm import tqdm
 
 # Results:
 #     a = np.sum(mask) / (np.prod(data.shape)*100)
@@ -26,14 +27,8 @@ from tqdm import tqdm
 #       SVD error was:  4.016538365960446
 #       SVT error was:  1.9620087568030429
 
-directory = Path(__file__)
-data_path = os.path.join(directory, "../data/data_train.csv")
 
-print("directory: ", directory, "       Data path: ", data_path)
-sys.path.append(directory)  # add local path to the project here
 # path to the train file
-DATA_PATH = "data/test.csv"
-print("directory: ", directory)
 
 TRAIN_SIZE = 0.9  # size of training set
 MAX_ITERATIONS = 100  # max number of iteration for svt and asvt
