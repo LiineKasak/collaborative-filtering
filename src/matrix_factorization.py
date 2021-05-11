@@ -22,7 +22,7 @@ def plot_curve(loss_curve):
 
 
 def non_negative_matrix_factorization(X, max_iterations, k):
-    K = 49  # Number of features
+    K = k  # Number of features
     X = X.float()
 
     # Initialize W and Z from a uniform distribution U(0, 1)
@@ -34,9 +34,9 @@ def non_negative_matrix_factorization(X, max_iterations, k):
     loss_fn = nn.MSELoss()
 
     loss_curve = []
-    for i in range(5000):
+    for i in range(max_iterations):
         optimizer.zero_grad()
-        loss = torch.sqrt(loss_fn(U @ V.t(), X) + eps) # add eps in case of 0
+        loss = torch.sqrt(loss_fn(U @ V.t(), X) + eps)  # add eps in case of 0
         loss.backward()
         optimizer.step()
 
@@ -47,12 +47,9 @@ def non_negative_matrix_factorization(X, max_iterations, k):
         loss_val = loss.item()
         loss_curve.append(loss_val)
 
-        if i % 1000 == 0:
-            print(f'[{i}] loss: {loss_val:.05f}')
-
-
     plot_curve(loss_curve)
     return U, V
+
 
 def sgd_factorization(X, max_iterations, k):
     (n, p) = X.shape
@@ -64,21 +61,20 @@ def sgd_factorization(X, max_iterations, k):
 
     # optimizer = optim.SGD([U, V], lr=0.005)
     # loss_fn = nn.MSELoss()
-    optimizer = optim.SGD([U, V], lr=0.9, momentum=0.8) # need momentum to degrease the loss faster
+    optimizer = optim.SGD([U, V], lr=0.9, momentum=0.8)  # need momentum to degrease the loss faster
     loss_fn = nn.MSELoss()
 
     loss_curve = []
     for i in tqdm(range(max_iterations), desc='SGD_factorization'):
         optimizer.zero_grad()
-        loss = torch.sqrt(loss_fn(U @ V.t(), X) + eps) # add eps in case of 0
+        loss = torch.sqrt(loss_fn(U @ V.t(), X) + eps)  # add eps in case of 0
 
         loss.backward()
         optimizer.step()
 
         loss_curve.append(loss.item())
-        if (i % (max_iterations/10) == 0):
-            print("loss: ", loss.item())
-    return U,V
+    return U, V
+
 
 def als_factorization(X, max_iterations, k):
     (n, p) = X.shape
@@ -90,19 +86,24 @@ def als_factorization(X, max_iterations, k):
 
     # optimizer = optim.SGD([U, V], lr=0.005)
     # loss_fn = nn.MSELoss()
-    optimizer = optim.Adam([U, V], lr=0.005)
-    loss_fn = nn.MSELoss()
+    optimizer_U = optim.Adam([U], lr=0.005)
+    optimizer_V = optim.Adam([V], lr=0.005)
+
+    loss_fn_U = nn.MSELoss()
+    loss_fn_V = nn.MSELoss()
 
     loss_curve = []
-    for i in tqdm(range(max_iterations), desc='SGD_factorization'):
-        optimizer.zero_grad()
-        loss = torch.sqrt(loss_fn(U @ V.t(), X) + eps) # add eps in case of 0
+    for i in tqdm(range(max_iterations), desc='ALS_factorization'):
+        # optimize U
+        optimizer_U.zero_grad()
+        loss_u = torch.sqrt(loss_fn_U(U @ V.t(), X) + eps)  # add eps in case of 0
+        loss_u.backward()
+        optimizer_U.step()
 
-        loss.backward()
-        optimizer.step()
+        # optimize V
+        optimizer_V.zero_grad()
+        loss_v = torch.sqrt(loss_fn_V(U @ V.t(), X) + eps)  # add eps in case of 0
+        loss_v.backward()
+        optimizer_V.step()
 
-        loss_curve.append(loss.item())
-
-        if (i % 1000 == 0):
-            print("loss: ", loss.item())
-    return U,V
+    return U, V
