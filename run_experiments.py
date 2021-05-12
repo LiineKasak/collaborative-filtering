@@ -11,10 +11,10 @@ import os
 from pathlib import Path
 
 # !! If "module helpers not found" error appears run the following code: !!
-# import sys
-# directory = Path(__file__).parent
-# directory_path = os.path.abspath(directory)
-# sys.path.append(directory_path)
+import sys
+directory = Path(__file__).parent
+directory_path = os.path.abspath(directory)
+sys.path.append(directory_path)
 
 from helpers import data_processing
 from src.matrix_factorization import sgd_factorization, non_negative_matrix_factorization, als_factorization
@@ -77,8 +77,7 @@ def run_sgd(data):
 
 
 def main():
-    directory = Path(__file__).parent
-    directory_path = os.path.abspath(directory)
+
     DATA_PATH = directory_path + '/data/data_train.csv'
     data_pd = pd.read_csv(DATA_PATH)
     train_pd, test_pd = train_test_split(data_pd, train_size=train_size, random_state=42)
