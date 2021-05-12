@@ -15,9 +15,7 @@ def extract_users_items_predictions(data_pd):
     return users, movies, predictions
 
 data_pd = pd.read_csv('data_train.csv')
-train_size = 0.9
-train_pd, test_pd = train_test_split(data_pd, train_size=train_size, random_state=42)
-test_users, test_movies, test_predictions = extract_users_items_predictions(test_pd)
+test_users, test_movies, test_predictions = extract_users_items_predictions(data_pd)
 ratings_dict = {'itemID': test_movies,
                 'userID': test_users,
                 'rating': test_predictions}
