@@ -6,17 +6,17 @@ import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
 
-# add to path such that we can import helpers etc.
+# add to path such that we can import auxiliary etc.
 import os
 from pathlib import Path
 
-# !! If "module helpers not found" error appears run the following code: !!
+# !! If "module auxiliary not found" error appears run the following code: !!
 import sys
 directory = Path(__file__).parent
 directory_path = os.path.abspath(directory)
 sys.path.append(directory_path)
 
-from helpers import data_processing
+from auxiliary import data_processing
 from src.matrix_factorization import sgd_factorization, non_negative_matrix_factorization, als_factorization
 from src.svt import svt, asvt, svd_completion
 
@@ -30,7 +30,7 @@ experiment = Experiment(
 num_eigenvalues = 5
 max_iterations = 1000
 train_size = 0.9
-reconstruction_mode = 'asvt'
+reconstruction_mode = 'als'
 
 
 def run_completion(X, mask, mode):
@@ -47,7 +47,7 @@ def run_completion(X, mask, mode):
 def run_reconstruction(X, mask, mode):
 
     if mode == 'als':
-        U, V = als_factorization(X, max_iterations, num_eigenvalues)
+        U, V = als_factorization(X, max_iterations, num_eigenvalues, experiment)
         reconstructed_matrix = U @ V.t()
     elif mode == 'sgd':
         U, V = sgd_factorization(X, max_iterations, num_eigenvalues)
