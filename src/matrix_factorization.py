@@ -1,3 +1,6 @@
+import comet_ml
+from comet_ml import Experiment
+
 import numpy as np
 import math
 import matplotlib
@@ -8,9 +11,21 @@ import torch.nn as nn
 
 from tqdm import tqdm
 
-from helpers import data_processing
+from auxiliary import data_processing
 
 eps = 1e-6
+
+# Return user and item biases
+def compute_baselines_als(data, mask, n_epochs=10):
+    num_users, num_items = data.shape()
+    num_entries = len(users)
+    global_mean = np.mean(predictions)
+    for e in n_epochs:
+        for idx_u in num_users:
+            for idx_v in num_items:
+                r = data[idx_u, idx_i]
+
+
 
 
 def plot_curve(loss_curve):
@@ -30,7 +45,7 @@ def non_negative_matrix_factorization(X, max_iterations, k):
     U = torch.rand(X.shape[0], K).mul_(1 / math.sqrt(K)).requires_grad_()
     V = torch.rand(X.shape[1], K).mul_(1 / math.sqrt(K)).requires_grad_()
 
-    optimizer = optim.Adam([U, V], lr=0.005)
+    optimizer = optim.SGD([U, V], lr=0.9, momentum=0.8)  # need momentum to degrease the loss faster
     loss_fn = nn.MSELoss()
 
     loss_curve = []
@@ -61,22 +76,36 @@ def sgd_factorization(X, max_iterations, k):
 
     # optimizer = optim.SGD([U, V], lr=0.005)
     # loss_fn = nn.MSELoss()
-    optimizer = optim.SGD([U, V], lr=0.9, momentum=0.8)  # need momentum to degrease the loss faster
+    optimizer = optim.SGD([U, V], lr=0.5, momentum=0.95)  # need momentum to decrease the loss faster
     loss_fn = nn.MSELoss()
-
+    loss_old = -1
+    same = 0
     loss_curve = []
-    for i in tqdm(range(max_iterations), desc='SGD_factorization'):
-        optimizer.zero_grad()
-        loss = torch.sqrt(loss_fn(U @ V.t(), X) + eps)  # add eps in case of 0
+    with tqdm(range(max_iterations), desc='SGD_factorization', unit="batch") as pb:
 
-        loss.backward()
-        optimizer.step()
+        for i in pb:
+            optimizer.zero_grad()
+            loss = torch.sqrt(loss_fn(U @ V.t(), X) + eps)  # add eps in case of 0
+            loss.backward()
+            optimizer.step()
 
-        loss_curve.append(loss.item())
+
+            if loss_old - loss.item() < 1e-10:  # early stopping
+                same += 1
+                if same > 50:
+                    break
+
+            loss_old = loss.item()
+
+
+            pb.set_postfix(loss=loss.item())
+
+            loss_curve.append(loss.item())
+
     return U, V
 
 
-def als_factorization(X, max_iterations, k):
+def als_factorization(X, max_iterations, k, experiment):
     (n, p) = X.shape
 
     X = X.float()
@@ -92,6 +121,9 @@ def als_factorization(X, max_iterations, k):
     loss_fn_U = nn.MSELoss()
     loss_fn_V = nn.MSELoss()
 
+
+
+
     loss_curve = []
     for i in tqdm(range(max_iterations), desc='ALS_factorization'):
         # optimize U
@@ -105,5 +137,16 @@ def als_factorization(X, max_iterations, k):
         loss_v = torch.sqrt(loss_fn_V(U @ V.t(), X) + eps)  # add eps in case of 0
         loss_v.backward()
         optimizer_V.step()
+
+        # Project onto valid set of solutions
+        U.data.clamp_(min=0)
+        V.data.clamp_(min=0)
+
+        experiment.log_metrics(
+            {
+                "loss_u": loss_u,
+                "loss_v": loss_v
+            }
+        )
 
     return U, V

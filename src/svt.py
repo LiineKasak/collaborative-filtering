@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from tqdm import tqdm
-from helpers import data_processing
+from auxiliary import data_processing
 
 
 def shrink(Y, tau):
