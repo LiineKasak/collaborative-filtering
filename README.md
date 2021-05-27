@@ -52,7 +52,7 @@ README
 	
 ```
 
-**Algorithms-Classes (see `src/algo_base.py:** 
+**Algorithms-Classes (see `src/algobase.py`):** 
 
 ```python
 class approach(AlgoBase):
