@@ -55,7 +55,7 @@ with open('kaggle.json', 'w') as file:
 
 number_of_users, number_of_movies = (10000, 1000)
 
-data_pd = pd.read_csv('data_train.csv')
+data_pd = pd.read_csv('data/data_train.csv')
 print(data_pd.head(5))
 print()
 print('Shape', data_pd.shape)
