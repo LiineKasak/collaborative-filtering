@@ -245,3 +245,20 @@ best_ncf_state = train_model(
   log_dir='./tensorboard/ncf/' + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
 )
 torch.save(best_ncf_state, 'best-ncf.pt') 
+
+
+# Submission to Kaggle:
+# first use the sample file to get the (user, movie) pairs that we want to predict for:
+sub_users, sub_movies, _ = extract_users_items_predictions(submission_pd)
+sub_users_torch = torch.tensor(sub_users, device=device)
+sub_movies_torch = torch.tensor(sub_movies, device=device)
+# then compute the predictions:
+predictions = ncf(sub_users_torch, sub_movies_torch).cpu().detach().numpy()
+# convert to a Pandas dataframe:
+pred_pd = pd.DataFrame(columns=['Id', 'Prediction'])
+pred_pd['Id'] = [f'r{v[0]+1}_c{v[1]+1}' for v in zip(sub_users, sub_movies)]
+pred_pd['Prediction'] = predictions
+# export to file:
+pred_pd.to_csv('best_ncf.csv.zip', index=False, compression='zip')
+# submit from terminal:
+# !kaggle competitions submit cil-collaborative-filtering-2021 -f best_ncf.csv.zip -m '<message>'
