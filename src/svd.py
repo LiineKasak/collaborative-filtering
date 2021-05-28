@@ -1,21 +1,31 @@
 import pandas as pd
-from auxiliary import processing
+import numpy as np
+from auxiliary import data_processing
 from src.algobase import AlgoBase
 
-class SVD(AlgoBase):
-    def __init__(self):
-        # TODO: Initialize comet-experiment here to make sure things are tracked
-        return
 
-    def fit(self, input_data):
-        # TODO
-        return
+class SVD(AlgoBase):
+    def __init__(self, k):
+        AlgoBase.__init__(self)
+
+        number_of_singular_values = min(self.number_of_users, self.number_of_movies)
+        assert (k <= number_of_singular_values), "svd received invalid number of singular values (too large)"
+
+        self.k = k  # number of singular values to use
+        self.reconstructed_matrix = np.zeros((self.number_of_movies, self.number_of_movies))
+
+        # TODO: Initialize comet-experiment here to make sure things are tracked
+
+    def fit(self, users, movies, predictions):
+        matrix, _ = data_processing.get_data_mask(users, movies, predictions)
+        U, s, Vt = np.linalg.svd(matrix, full_matrices=False)
+
+        S = np.zeros((self.number_of_movies, self.number_of_movies))
+        S[:self.k, :self.k] = np.diag(s[:self.k])
+
+        self.reconstructed_matrix = U.dot(S).dot(Vt)
 
     def predict(self, users, movies):
-        directory_path = processing.get_project_directory()
-        submission_pd = pd.read_csv(directory_path + '/data/sampleSubmission.csv')
-        sub_users, sub_movies, sub_predictions = processing.extract_users_items_predictions(submission_pd)
-        return sub_predictions
-        # return
+        predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
 
-
+        return predictions
