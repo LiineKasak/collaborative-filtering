@@ -67,10 +67,7 @@ class approach(AlgoBase):
     
     def predict(test_data):
         # predict value for given test-input
-    
-    def cross_validate(data):
-        # not sure, but maybe have this s.t. 
-        # we can call cross_validate on an approach directly?
+
 
 	
 ```
