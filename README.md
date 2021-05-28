@@ -18,9 +18,7 @@ For leonhard, execute the first 2 steps, and then run `source init_leonhard.sh`
 ## Proposed Project Structure:
 ```markdown
 auxiliary/ -- helper functions
-    model_selection.py -- cross_validation etc
-    
-    processing.py:
+    data_processing.py:
         - read the data, and return users, items, ratings lists
         - split into matrix and mask
         - get_statistics
@@ -36,6 +34,11 @@ experiments/
     run_xyz.py -- files that are required to actually run the approaches (for reproducible experiments)
 
 src/ -- one file per method, all implemented according to some interface (see below)
+    algobase.py -- every method should inherit from this
+        - kaggle_predict
+        - predict
+        - fit
+        - cross_validate
     svd.py
     ncf.py
     ...

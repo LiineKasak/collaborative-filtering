@@ -65,7 +65,6 @@ def extract_users_items_predictions(data_pd):
 
 def read_data():
     directory_path = get_project_directory()
-
     data_pd = pd.read_csv(directory_path + '/data/data_train.csv')
     return data_pd
 
@@ -82,6 +81,12 @@ def get_data_mask(users, movies, predictions):
 
     return data, mask
 
+def get_users_movies_to_predict():
+    directory_path = get_project_directory()
+    submission_pd = pd.read_csv(directory_path + '/data/sampleSubmission.csv')
+    sub_users, sub_movies, _ = extract_users_items_predictions(submission_pd)
+
+    return sub_users, sub_movies
 
 def create_submission_file(sub_users, sub_movies, predictions, name='submission'):
     """ predictions, create a file to submit to kaggle and store it under name.csv """
