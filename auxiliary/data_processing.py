@@ -64,6 +64,7 @@ def extract_users_items_predictions(data_pd):
 
 
 def read_data():
+    """ Read the data from ./data/data_train.csv """
     directory_path = get_project_directory()
     data_pd = pd.read_csv(directory_path + '/data/data_train.csv')
     return data_pd
@@ -81,12 +82,15 @@ def get_data_mask(users, movies, predictions):
 
     return data, mask
 
+
 def get_users_movies_to_predict():
+    """ Return the users and movies that we have to create a prediction for """
     directory_path = get_project_directory()
     submission_pd = pd.read_csv(directory_path + '/data/sampleSubmission.csv')
     sub_users, sub_movies, _ = extract_users_items_predictions(submission_pd)
 
     return sub_users, sub_movies
+
 
 def create_submission_file(sub_users, sub_movies, predictions, name='submission'):
     """ predictions, create a file to submit to kaggle and store it under name.csv """
@@ -99,7 +103,7 @@ def create_submission_file(sub_users, sub_movies, predictions, name='submission'
 
     # export to file:
     # archive_name is required to create working zip on my computer
-    pred_pd.to_csv(directory_path + '/data/submissions/'+name + '.csv.zip',
+    pred_pd.to_csv(directory_path + '/data/submissions/' + name + '.csv.zip',
                    index=False,
                    compression={'method': 'zip', 'archive_name': name + '.csv'}
                    )
