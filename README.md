@@ -1,7 +1,14 @@
 # CIL Project 2021: Collaborative Filtering
 
 ## Requirements
+### Prepare environment using script
+Run `source auxiliary/init_local.sh` to run locally, or `source auxiliary/init_leonhard.sh` to run on leonhard. 
+- This will create a virtual environment (if it does not yet exist) and make sure the requirements are satisied. 
+- It will also add the working directory `.../collaborative-filtering` to PYTHONPATH.
 
+
+If this doesnt work run manually:
+### Prepare environment Manually
 1. Add directory to PYTHONPATH: \
     `export PYTHONPATH=/path_to_source_directory/collaborative-filtering:$PYTHONPATH`
     
@@ -13,7 +20,11 @@
     `pip install -r requirements.txt`
     
     
-For leonhard, execute the first 2 steps, and then run `source init_leonhard.sh`
+For leonhard, execute the first 2 steps, and then run 
+
+`module load python_cpu/3.7.4 eth_proxy`
+
+`pip install -r requirements.txt`
 
 ## Proposed Project Structure:
 ```markdown
