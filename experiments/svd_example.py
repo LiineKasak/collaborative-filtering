@@ -6,6 +6,8 @@ from src import svd
      export PYTHONPATH=/path-to-project/collaborative-filtering:$PYTHONPATH
      e.g.
      export PYTHONPATH=/Users/veronique/Documents/ETHZ/Master/Semester2/CIL/Project/collaborative-filtering:$PYTHONPATH
+     
+    or run "auxiliary/init_local.sh
 
 """
 
