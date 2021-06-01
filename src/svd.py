@@ -5,16 +5,15 @@ from src.algobase import AlgoBase
 
 
 class SVD(AlgoBase):
-    def __init__(self, k):
+    """ Prediction based on dimensionality reduction through singular value decomposition """
+    def __init__(self, k_singular_values, track_to_comet=False):
         AlgoBase.__init__(self)
 
         number_of_singular_values = min(self.number_of_users, self.number_of_movies)
-        assert (k <= number_of_singular_values), "svd received invalid number of singular values (too large)"
+        assert (k_singular_values <= number_of_singular_values), "svd received invalid number of singular values (too large)"
 
-        self.k = k  # number of singular values to use
+        self.k = k_singular_values  # number of singular values to use
         self.reconstructed_matrix = np.zeros((self.number_of_movies, self.number_of_movies))
-
-        # TODO: Initialize comet-experiment here to make sure things are tracked
 
     def fit(self, users, movies, predictions):
         matrix, _ = data_processing.get_data_mask(users, movies, predictions)
