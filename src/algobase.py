@@ -11,7 +11,11 @@ class AlgoBase():
     """ Base for all predictors, every predictor should inherit from this and implement
         (at least) a fit and predict method """
 
-    def __init__(self, track_to_comet=False):
+    def __init__(self, track_to_comet=False, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
+        """ - initialize the method (number of users/movies, and the method name).
+            - initialize the comet experiment if desired (default is no tracking)
+            - if you want to track to a different comet workspace, you can pass arguments to it."""
+
         self.number_of_users, self.number_of_movies = (10000, 1000)
 
         # name of the method. Will be set when the method calls AlgoBase.__init__(self)
@@ -21,12 +25,12 @@ class AlgoBase():
         # initialize the comet experiment
         if self.track_on_comet:
             self.comet_experiment = Experiment(
-                api_key="rISpuwcLQoWU6qan4jRCAPy5s",
-                project_name="cil-experiments",
-                workspace="veroniquek",
+                api_key=api_key,
+                project_name=projectname,
+                workspace=workspace,
             )
             self.comet_experiment.set_name(self.method_name)
-            self.comet_experiment.add_tag("baseline")
+            self.comet_experiment.add_tag(tag)
 
     def predict(self, users, movies):
         """ Predict ratings for a given set of users and movies """
