@@ -11,7 +11,7 @@ class AlgoBase():
     """ Base for all predictors, every predictor should inherit from this and implement
         (at least) a fit and predict method """
 
-    def __init__(self, track_to_comet=False, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
+    def __init__(self, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
         """ - initialize the method (number of users/movies, and the method name).
             - initialize the comet experiment if desired (default is no tracking)
             - if you want to track to a different comet workspace, you can pass arguments to it."""
@@ -19,7 +19,12 @@ class AlgoBase():
         self.number_of_users, self.number_of_movies = (10000, 1000)
 
         # name of the method. Will be set when the method calls AlgoBase.__init__(self)
-        self.method_name = self.__class__.__name__
+        if method_name:
+            self.method_name = method_name
+        else:
+            self.method_name = self.__class__.__name__
+
+        print("method name:", self.method_name)
         self.track_on_comet = track_to_comet
 
         # initialize the comet experiment
@@ -58,7 +63,9 @@ class AlgoBase():
 
         rmses = []
 
-        for train_index, test_index in tqdm(kfold.split(data_pd), desc='cross_validation'):
+        bar = tqdm(total=folds,  desc='cross_validation')
+
+        for train_index, test_index in kfold.split(data_pd):
             train_users, train_movies, train_predictions = data_processing.extract_users_items_predictions(
                 data_pd.iloc[train_index])
             val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(
@@ -68,6 +75,10 @@ class AlgoBase():
 
             predictions = self.predict(val_users, val_movies)
             rmses.append(data_processing.get_score(predictions, val_predictions))
+
+            bar.update()
+
+        bar.close()
 
         mean_rmse = np.mean(rmses)
         # track mean rmses to comet if we are tracking

@@ -7,7 +7,7 @@ from src.algobase import AlgoBase
 class SVD(AlgoBase):
     """ Prediction based on dimensionality reduction through singular value decomposition """
     def __init__(self, k_singular_values, track_to_comet=False):
-        AlgoBase.__init__(self)
+        AlgoBase.__init__(self, track_to_comet)
 
         number_of_singular_values = min(self.number_of_users, self.number_of_movies)
         assert (k_singular_values <= number_of_singular_values), "svd received invalid number of singular values (too large)"
