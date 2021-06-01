@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error
 from pathlib import Path
 import os
+from surprise import Dataset, Reader
 
 number_of_users, number_of_movies = (10000, 1000)
 
@@ -90,6 +91,34 @@ def get_users_movies_to_predict():
     sub_users, sub_movies, _ = extract_users_items_predictions(submission_pd)
 
     return sub_users, sub_movies
+
+
+def load_surprise_dataframe_from_arrays(users, movies, predictions):
+    # Creation of the dataframe. Column names are irrelevant.
+    ratings_dict = {'users': users,
+                    'items': movies,
+                    'predictions': predictions}
+    df = pd.DataFrame(ratings_dict)
+
+    # The columns must correspond to user id, item id and ratings (in that order).
+    reader = Reader(rating_scale=(1, 5))
+    data = Dataset.load_from_df(df[['users', 'items', 'predictions']], reader=reader)
+    return data
+
+
+def load_surprise_dataframe_from_pd(data_pd):
+    items, users, predictions = extract_users_items_predictions(data_pd)
+
+    # Creation of the dataframe. Column names are irrelevant.
+    ratings_dict = {'users': users,
+                    'items': items,
+                    'predictions': predictions}
+    df = pd.DataFrame(ratings_dict)
+
+    # The columns must correspond to user id, item id and ratings (in that order).
+    reader = Reader(rating_scale=(1, 5))
+    data = Dataset.load_from_df(df[['users', 'items', 'predictions']], reader=reader)
+    return data
 
 
 def create_submission_file(sub_users, sub_movies, predictions, name='submission'):
