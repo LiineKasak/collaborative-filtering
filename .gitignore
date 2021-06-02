@@ -1,0 +1,11 @@
+/.kaggle/*
+/data/
+*.zip
+*.csv
+
+
+# pycharm stuff
+/.idea/*
+*.DS_Store
+/venv/
+*/__pycache__/*
