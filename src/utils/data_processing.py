@@ -13,7 +13,7 @@ number_of_users, number_of_movies = (10000, 1000)
 
 
 def get_project_directory():
-    directory = Path(__file__).parent.parent
+    directory = Path(__file__).parent.parent.parent
     directory_path = os.path.abspath(directory)
     return directory_path
 
