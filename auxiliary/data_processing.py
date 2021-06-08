@@ -155,4 +155,4 @@ def create_dataloader(users, movies, predictions, batch_size, device=None):
 
     dataloader = DataLoader(
         TensorDataset(users_torch, movies_torch, predictions_torch), batch_size=batch_size)
-    return None
+    return dataloader

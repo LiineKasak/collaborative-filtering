@@ -88,5 +88,4 @@ class AlgoBase():
                     "root_mean_squared_error": mean_rmse
                 }
             )
-        print(rmses)
         return rmses
