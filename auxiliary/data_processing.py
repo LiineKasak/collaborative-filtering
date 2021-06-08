@@ -6,6 +6,8 @@ from sklearn.metrics import mean_squared_error
 from pathlib import Path
 import os
 from surprise import Dataset, Reader
+import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 number_of_users, number_of_movies = (10000, 1000)
 
@@ -141,3 +143,16 @@ def create_submission_file(sub_users, sub_movies, predictions, name='submission'
 
     # submit from terminal:
     # !kaggle competitions submit cil-collaborative-filtering-2021 -f ./data/submissions/name.csv.zip -m '<message>'
+
+
+def create_dataloader(users, movies, predictions, batch_size, device=None):
+    if device is None:
+        device = torch.device("cpu")
+
+    users_torch = torch.tensor(users, device=device)
+    movies_torch = torch.tensor(movies, device=device)
+    predictions_torch = torch.tensor(predictions, device=device)
+
+    dataloader = DataLoader(
+        TensorDataset(users_torch, movies_torch, predictions_torch), batch_size=batch_size)
+    return None
