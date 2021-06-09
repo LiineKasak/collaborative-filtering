@@ -2,7 +2,7 @@
 
 ## Requirements
 ### Prepare environment using script
-Run `source bin/init.sh` to run locally, or `source bin/leonhard_init.sh` to run on leonhard.
+Run `source bin/init.sh` to run locally, or `source bin/leonhard_init.sh` to run on leonhard (note: must be run from the project root!).
 - This will create a virtual environment (if it does not yet exist) and make sure the requirements are satisied. 
 - It will also add the working directory `.../collaborative-filtering/src` to PYTHONPATH.
 
