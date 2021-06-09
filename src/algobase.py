@@ -7,7 +7,7 @@ from comet_ml import Experiment
 from auxiliary import data_processing
 
 
-class AlgoBase():
+class AlgoBase:
     """ Base for all predictors, every predictor should inherit from this and implement
         (at least) a fit and predict method """
 

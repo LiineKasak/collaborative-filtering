@@ -70,16 +70,32 @@ def read_data():
     return data_pd
 
 
-def get_data_mask(users, movies, predictions):
+def get_data_mask(users, movies, predictions, unknown_data_mode='mean'):
     """ given input data, return a mask containing 1 if the prediction is available,
     and a data matrix containing that prediction (using mean imputation) """
-    data = np.full((number_of_users, number_of_movies), np.mean(predictions))
-    mask = np.zeros((number_of_users, number_of_movies))  # 0 -> unobserved value, 1->observed value
+
+    shape = (number_of_users, number_of_movies)
+    data = np.empty(shape)
+    data[:] = np.nan
+    mask = np.zeros(shape)  # 0 -> unobserved value, 1-> observed value
 
     for user, movie, pred in zip(users, movies, predictions):
         data[user - 1][movie - 1] = pred
         mask[user - 1][movie - 1] = 1
 
+    if unknown_data_mode == 'user_mean':
+        row_mean = np.nanmean(data, axis=1)
+        indices = np.where(np.isnan(data))
+        data[indices] = np.take(row_mean, indices[0])
+    else:
+        default_value = None
+        if unknown_data_mode == 'zero':
+            default_value = 0
+        elif unknown_data_mode == 'mean':
+            default_value = np.mean(predictions)
+
+        if default_value:
+            data[np.isnan(data)] = default_value
     return data, mask
 
 
