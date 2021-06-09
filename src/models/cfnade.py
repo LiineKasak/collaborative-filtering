@@ -50,16 +50,18 @@ class CFNADE(AlgoBase):
             return nn.Softmax(dim=0)(scores)
 
         def forward(self, item, history):
-            res = torch.zeros(item.shape[0])
-            for k in range(self.number_of_scores):
-                res += (k + 1) * self.dist(item, history)[k]
+            d = self.dist(item, history)
+            res = d[0]
+            for k in range(1, self.number_of_scores):
+                res = res + (k + 1) * d[k]
             return res
 
 
-    def __init__(self, track_to_comet=False):
+    def __init__(self, device, track_to_comet=False):
         AlgoBase.__init__(self, track_to_comet)
-        self.model = self.Model(self.number_of_movies, 5)
+        self.model = self.Model(self.number_of_movies, 5).to(device)
         self.history = []
+        self.device = device
 
     def make_history(self, users, movies, predictions):
         self.history = [[] for u in range(self.number_of_users)]
@@ -72,7 +74,13 @@ class CFNADE(AlgoBase):
     def fit(self, users, movies, predictions, num_epochs=20, batch_size=128, learning_rate=1e-2):
         optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         users_train, users_test, movies_train, movies_test, pred_train, pred_test =\
-            train_test_split(torch.tensor(users), torch.tensor(movies), torch.tensor(predictions), train_size=0.9, random_state=42)
+            train_test_split(
+                torch.tensor(users, device=self.device),
+                torch.tensor(movies, device=self.device),
+                torch.tensor(predictions, device=self.device),
+                train_size=0.9,
+                random_state=42
+            )
         self.make_history(users_train, movies_train, pred_train)
         dataloader = DataLoader(
             TensorDataset(users_train, movies_train, pred_train),
@@ -93,7 +101,7 @@ class CFNADE(AlgoBase):
                     step += 1
                 with torch.no_grad():
                     all_predictions = self.model(movies_test, self.get_history(users_test))
-                reconstuction_rmse = data_processing.get_score(all_predictions.cpu().numpy(), pred_test)
+                reconstuction_rmse = data_processing.get_score(all_predictions.cpu().numpy(), pred_test.cpu().numpy())
                 pbar.set_description('At epoch {:3d} loss is {:.4f}'.format(epoch, reconstuction_rmse))
                 if reconstuction_rmse < best_rmse:
                     res = self.model.state_dict()
