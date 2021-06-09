@@ -22,8 +22,8 @@ def map_to_omega(X, mask):
 class SVT(AlgoBase):
     """ Prediction based on dimensionality reduction through singular value decomposition """
 
-    def __init__(self, max_iterations=1000, delta=10.1958, eps=0.01, tau=27500, track_to_comet=False):
-        AlgoBase.__init__(self, track_to_comet)
+    def __init__(self, max_iterations=1000, delta=10.1958, eps=0.01, tau=27500, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
+        AlgoBase.__init__(self, track_to_comet, track)
 
         number_of_singular_values = min(self.number_of_users, self.number_of_movies)
 
