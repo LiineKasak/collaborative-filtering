@@ -38,12 +38,12 @@ class CFNADE(AlgoBase):
             res = self.hidden_bias.repeat(len(histories), 1)
             for i, history in enumerate(histories):
                 for (item, rating) in history:
-                    res[i] += self.hidden_W[rating, :, item]
+                    res[i] += self.hidden_W[rating - 1, :, item]
                 res[i] = torch.tanh(res[i])
             return res
 
         def score(self, item, history, k):
-            return self.score_bias[k,item] + batch_dot(self.score_V[k, item], self.hidden(history))
+            return self.score_bias[k, item] + batch_dot(self.score_V[k, item, :], self.hidden(history))
 
         def dist(self, item, history):
             scores = torch.stack([self.score(item, history, k) for k in range(self.number_of_scores)])
@@ -52,7 +52,7 @@ class CFNADE(AlgoBase):
         def forward(self, item, history):
             res = torch.zeros(item.shape[0])
             for k in range(self.number_of_scores):
-                res += k * self.dist(item, history)[k]
+                res += (k + 1) * self.dist(item, history)[k]
             return res
 
 
