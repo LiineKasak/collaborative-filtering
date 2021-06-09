@@ -1,4 +1,4 @@
-project_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+project_dir="$PWD"
 export PYTHONPATH="$project_dir/src:$PYTHONPATH"
 
 if [ -d "./venv" ]; then
