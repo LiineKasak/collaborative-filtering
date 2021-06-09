@@ -1,7 +1,7 @@
-from auxiliary import data_processing
-from src.svd import SVD
-from src.ncf import NCF
-import pandas as pd
+from utils import data_processing
+from models.svd import SVD
+from models.ncf import NCF
+
 """ 
     Run Cross-Validation for multiple approaches at the same time.
     
