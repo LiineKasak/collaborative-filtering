@@ -16,8 +16,8 @@ def mse_loss(predictions, target):
 
 class NCF(nn.Module, AlgoBase):
     def __init__(self, number_of_users, number_of_movies, embedding_size=16, batch_size=1024, num_epochs=10, learning_rate=10e-3, optimizer = None, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
-        super().__init__(track_to_comet=track_to_comet, method_name=method_name, api_key=api_key, projectname=projectname, workspace=workspace, tag=tag)
-        AlgoBase.__init__(self)
+        nn.Module.__init__(self)
+        AlgoBase.__init__(self, track_to_comet=track_to_comet, method_name=method_name, api_key=api_key, projectname=projectname, workspace=workspace, tag=tag)
         self.embedding_layer_users = nn.Embedding(number_of_users, embedding_size)
         self.embedding_layer_movies = nn.Embedding(number_of_movies, embedding_size)
 

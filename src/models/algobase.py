@@ -26,16 +26,21 @@ class AlgoBase():
 
         print("method name:", self.method_name)
         self.track_on_comet = track_to_comet
-
+        self.api_key = api_key
+        self.projectname = projectname
+        self.workspace = workspace
+        self.tag = tag
         # initialize the comet experiment
+
+    def start_comet(self):
         if self.track_on_comet:
             self.comet_experiment = Experiment(
-                api_key=api_key,
-                project_name=projectname,
-                workspace=workspace,
+                api_key=self.api_key,
+                project_name=self.projectname,
+                workspace=self.workspace,
             )
             self.comet_experiment.set_name(self.method_name)
-            self.comet_experiment.add_tag(tag)
+            self.comet_experiment.add_tag(self.tag)
 
     def predict(self, users, movies):
         """ Predict ratings for a given set of users and movies """
@@ -59,6 +64,9 @@ class AlgoBase():
     def cross_validate(self, data_pd, folds=5, random_state=42):
         """ Run Crossvalidation using kfold, taking a pandas-dataframe of the raw data as input
             (as it is read in from the .csv file) """
+
+        self.start_comet()
+
         kfold = KFold(n_splits=folds, shuffle=True, random_state=random_state)
 
         rmses = []

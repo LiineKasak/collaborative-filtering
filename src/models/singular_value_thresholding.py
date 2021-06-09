@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 import math
-from auxiliary import data_processing
-from src.algobase import AlgoBase
+from utils import data_processing
+from src.models.algobase import AlgoBase
 
 
 def shrink(Y, tau):
