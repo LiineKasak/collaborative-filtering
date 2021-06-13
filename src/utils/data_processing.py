@@ -141,3 +141,38 @@ def create_submission_file(sub_users, sub_movies, predictions, name='submission'
 
     # submit from terminal:
     # !kaggle competitions submit cil-collaborative-filtering-2021 -f ./data/submissions/name.csv.zip -m '<message>'
+
+
+def create_users_dict(users, movies, ratings):
+    unique_users = np.unique(users)
+    movies_ratings_dict = {}
+    user_mean_rating_dict = {}
+    for user_key in unique_users:
+        user_list = []
+        user_mean_rating = 0
+        for idx, user in enumerate(users):
+            if user == user_key:
+                user_list.append((movies[idx], ratings[idx]))
+                user_mean_rating += ratings[idx]
+
+        movies_ratings_dict[user_key] = user_list
+        user_mean_rating_dict[user_key] = user_mean_rating/len(user_list)
+
+    return movies_ratings_dict, user_mean_rating_dict
+
+def create_movies_dict(users, movies, ratings):
+    unique_movies = np.unique(movies)
+    users_ratings_dict = {}
+    movie_mean_rating_dict = {}
+    for movie_key in unique_movies:
+        movie_list = []
+        movie_mean_rating = 0
+        for idx, movie in enumerate(movies):
+            if movie == movie_key:
+                movie_list.append((users[idx], ratings[idx]))
+                movie_mean_rating += ratings[idx]
+
+        users_ratings_dict[movie_key] = movie_list
+        movie_mean_rating_dict[movie_key] = movie_mean_rating/len(movie_list)
+
+    return users_ratings_dict, movie_mean_rating_dict
