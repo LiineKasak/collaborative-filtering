@@ -63,7 +63,7 @@ def extract_users_items_predictions(data_pd):
         [np.squeeze(arr) for arr in
          np.split(data_pd.Id.str.extract('r(\d+)_c(\d+)').values.astype(int) - 1, 2, axis=-1)]
     predictions = data_pd.Prediction.values
-    return users, movies, predictions
+    return np.array(users), np.array(movies), np.array(predictions)
 
 
 def read_data():
@@ -92,7 +92,7 @@ def get_users_movies_to_predict():
     submission_pd = pd.read_csv(directory_path + '/data/sampleSubmission.csv')
     sub_users, sub_movies, _ = extract_users_items_predictions(submission_pd)
 
-    return sub_users, sub_movies
+    return np.array(sub_users), np.array(sub_movies)
 
 
 def load_surprise_dataframe_from_arrays(users, movies, predictions):

@@ -7,9 +7,10 @@ from surprise import NormalPredictor
 class SurpriseBaselines(AlgoBase):
     """ Prediction based on dimensionality reduction through singular value decomposition """
 
-    def __init__(self, predictor=NormalPredictor, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
-        AlgoBase.__init__(self, method_name=predictor.__name__ + "_surprise", track_to_comet=False, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline")
-        self.predictor = NormalPredictor()     # random predictor; will be overwritten by the init function
+    def __init__(self, predictor=NormalPredictor(), track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
+        AlgoBase.__init__(self, method_name=predictor.__class__.__name__ + "_surprise", track_to_comet=False, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline")
+
+        self.predictor = predictor     # random predictor; will be overwritten by the init function
 
     def fit(self, users, movies, predictions):
         trainset = data_processing.load_surprise_dataframe_from_arrays(users, movies, predictions).build_full_trainset()

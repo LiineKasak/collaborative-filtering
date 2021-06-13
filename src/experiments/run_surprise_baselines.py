@@ -9,10 +9,9 @@ data_pd = data_processing.read_data()
 users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
 sub_users, sub_movies = data_processing.get_users_movies_to_predict()
 
-surprise_methods = [SVD, NormalPredictor, BaselineOnly, KNNBasic, NMF, SlopeOne, CoClustering, KNNWithMeans,
-                    KNNWithZScore, KNNBaseline]
+surprise_methods = [SlopeOne(), CoClustering(), KNNWithMeans()]
 
 for method in surprise_methods:
-    predictor = SurpriseBaselines(predictor=method)
+    predictor = SurpriseBaselines(predictor=method, track_to_comet=False)
     rmses = predictor.cross_validate(data_pd)
     print("RMSES of ", predictor.method_name, "\n", rmses, "\n")
