@@ -48,13 +48,13 @@ class MultiBagging(AlgoBase):
         - approaches: array of AlgoBase approaches
     """
 
-    def __init__(self, methods, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s",
+    def __init__(self, predictors, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s",
                  projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
         AlgoBase.__init__(self, track_to_comet=track_to_comet, method_name=method_name, api_key=api_key,
                           projectname=projectname, workspace=workspace, tag=tag)
 
-        self.methods = methods
-        self.num_methods = len(methods)
+        self.methods = predictors
+        self.num_methods = len(predictors)
 
         np.random.seed(42)
 
