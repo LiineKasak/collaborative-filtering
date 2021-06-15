@@ -32,7 +32,8 @@ class CFNADE(AlgoBase):
         def hidden(self, history: torch.Tensor):
             biases = self.hidden_bias.repeat(history.shape[0], 1)
             history_view = history.view(history.shape[0], self.scores.shape[0], 1, self.number_of_items)
-            return biases + torch.matmul(history_view, self.hidden_W).sum(axis=1).view(history.shape[0], self.hidden_units)
+            res = biases + torch.matmul(history_view, self.hidden_W).sum(axis=1).view(history.shape[0], self.hidden_units)
+            return torch.tanh(res)
 
         def dist(self, item: torch.Tensor, history: torch.Tensor):
             v = self.score_V[:, item, :].view(self.scores.shape[0], item.shape[0], 1, self.hidden_units)
