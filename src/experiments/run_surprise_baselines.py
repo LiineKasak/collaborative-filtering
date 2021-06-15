@@ -1,9 +1,8 @@
-import pandas as pd
-from auxiliary import data_processing
+from utils import data_processing
 from surprise import SVD, NormalPredictor, BaselineOnly, KNNBasic, NMF, SlopeOne, CoClustering, KNNWithMeans, \
     KNNWithZScore, KNNBaseline
 
-from src.surprise_baselines import SurpriseBaselines
+from models.surprise_baselines import SurpriseBaselines
 
 # # read the sample submission file to get the values we have to predict
 data_pd = data_processing.read_data()

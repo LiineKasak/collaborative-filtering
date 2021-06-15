@@ -1,7 +1,6 @@
-import pandas as pd
 import numpy as np
-from auxiliary import data_processing
-from src.algobase import AlgoBase
+from utils import data_processing
+from .algobase import AlgoBase
 
 
 class SVD(AlgoBase):
