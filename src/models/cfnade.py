@@ -22,12 +22,12 @@ def mse_loss(predictions, target):
 class CFNADE(AlgoBase):
 
     class Model(nn.Module):
-        def __init__(self, number_of_items, scores_tensor):
+        def __init__(self, number_of_items, scores_tensor, hidden_units):
             super().__init__()
             self.number_of_items = number_of_items
             self.scores = scores_tensor
 
-            self.hidden_units = 10
+            self.hidden_units = hidden_units
             self.hidden_bias = nn.Parameter(torch.rand(self.hidden_units, requires_grad=True))
             self.hidden_W = nn.Parameter(torch.rand((scores_tensor.shape[0], number_of_items, self.hidden_units), requires_grad=True))
 
@@ -51,11 +51,11 @@ class CFNADE(AlgoBase):
             return torch.matmul(d, self.scores)
 
 
-    def __init__(self, device, track_to_comet=False):
+    def __init__(self, hidden_units, device, track_to_comet=False):
         AlgoBase.__init__(self, track_to_comet)
         self.number_of_scores = 5
         scores = torch.tensor(range(self.number_of_scores), device=device) + 1.0
-        self.model = self.Model(self.number_of_movies, scores).to(device)
+        self.model = self.Model(self.number_of_movies, scores, hidden_units).to(device)
         self.history = []
         self.device = device
 
