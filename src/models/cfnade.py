@@ -20,6 +20,8 @@ class CFNADE(AlgoBase):
             self.number_of_items = number_of_items
             self.scores = scores_tensor
 
+            self.register_buffer('score_add_mask', torch.triu(torch.ones((scores_tensor.shape[0], scores_tensor.shape[0]))), persistent=False)
+
             self.hidden_units = hidden_units
             self.hidden_bias = nn.Parameter(torch.rand(self.hidden_units, requires_grad=True))
             self.hidden_W = nn.Parameter(torch.rand((scores_tensor.shape[0], number_of_items, self.hidden_units), requires_grad=True))
@@ -37,7 +39,8 @@ class CFNADE(AlgoBase):
             h = self.hidden(history).view(history.shape[0], self.hidden_units, 1)
             dots = torch.matmul(v, h).view(self.scores.shape[0], item.shape[0])
             scores = self.score_bias[:, item] + dots
-            return nn.Softmax(dim=0)(scores).T
+            scores = torch.matmul(scores.T, self.score_add_mask)
+            return nn.Softmax(dim=1)(scores)
 
         def forward(self, item: torch.Tensor, history: torch.Tensor):
             d = self.dist(item, history)
