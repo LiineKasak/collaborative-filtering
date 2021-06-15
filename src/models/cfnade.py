@@ -55,7 +55,8 @@ class CFNADE(AlgoBase):
     def make_history(self, users, movies, predictions):
         self.history = torch.zeros((self.number_of_users, self.number_of_scores, self.number_of_movies), device=self.device)
         for (u, m, r) in zip(users, movies, predictions):
-            self.history[u, r - 1, m] = 1
+            for i in range(r):
+                self.history[u, i, m] = 1
 
     def fit(self, users, movies, predictions, num_epochs=20, batch_size=128, learning_rate=1e-2):
         optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
