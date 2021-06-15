@@ -75,16 +75,20 @@ class CFNADE(AlgoBase):
                 random_state=42
             )
         self.make_history(users_train, movies_train, pred_train)
-        dataloader = DataLoader(
+        train_dataloader = DataLoader(
             TensorDataset(users_train, movies_train, pred_train),
+            batch_size=batch_size,
+        )
+        test_dataloader = DataLoader(
+            TensorDataset(users_test, movies_test),
             batch_size=batch_size,
         )
         res = None
         best_rmse = 100
         step = 0
-        with tqdm(total=len(dataloader) * num_epochs) as pbar:
+        with tqdm(total=len(train_dataloader) * num_epochs) as pbar:
             for epoch in range(num_epochs):
-                for users_batch, movies_batch, target_predictions_batch in dataloader:
+                for users_batch, movies_batch, target_predictions_batch in train_dataloader:
                     optimizer.zero_grad()
                     predictions_batch = self.model(movies_batch, self.history[users_batch])
                     loss = mse_loss(predictions_batch, target_predictions_batch)
@@ -93,10 +97,14 @@ class CFNADE(AlgoBase):
                     pbar.update(1)
                     step += 1
                 with torch.no_grad():
-                    all_predictions = self.model(movies_test, self.history[users_test])
-                reconstuction_rmse = data_processing.get_score(all_predictions.cpu().numpy(), pred_test.cpu().numpy())
-                pbar.set_description('At epoch {:3d} loss is {:.4f}'.format(epoch, reconstuction_rmse))
-                if reconstuction_rmse < best_rmse:
+                    all_predictions = []
+                    for users_batch, movies_batch in test_dataloader:
+                        predictions_batch = self.model(movies_batch, self.history[users_batch])
+                        all_predictions.append(predictions_batch)
+                    all_predictions = torch.cat(all_predictions)
+                reconstruction_rmse = data_processing.get_score(all_predictions.cpu().numpy(), pred_test.cpu().numpy())
+                pbar.set_description('At epoch {:3d} loss is {:.4f}'.format(epoch, reconstruction_rmse))
+                if reconstruction_rmse < best_rmse:
                     res = self.model.state_dict()
         self.model.load_state_dict(res)
 
