@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold
 from tqdm import tqdm
 from comet_ml import Experiment
 
-from auxiliary import data_processing
+from utils import data_processing
 
 
 class AlgoBase():

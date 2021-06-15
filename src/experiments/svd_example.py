@@ -1,5 +1,5 @@
-from auxiliary import data_processing
-from src import svd
+from utils import data_processing
+from models import svd
 """ 
     Example file to show how to use the AlgoBase functions 
     First, run: 
@@ -13,7 +13,7 @@ from src import svd
 
 
 
-#Read the data from the file:
+# Read the data from the file:
 data_pd = data_processing.read_data()
 
 svd = svd.SVD(k_singular_values=2)

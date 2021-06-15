@@ -1,6 +1,6 @@
 import numpy as np
-from src.algobase import AlgoBase
-from auxiliary import data_processing
+from .algobase import AlgoBase
+from utils import data_processing
 from surprise import NormalPredictor
 
 
