@@ -8,13 +8,6 @@ from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 
 
-def batch_dot(a, b):
-    return torch.bmm(
-        a.view(a.shape[0], 1, a.shape[1]),
-        b.view(a.shape[0], a.shape[1], 1)
-    ).view(a.shape[0])
-
-
 def mse_loss(predictions, target):
     return torch.mean((predictions - target) ** 2)
 
