@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.model_selection import train_test_split
 from src.utils import data_processing
 from src.models.algobase import AlgoBase
 from src.models.svd import SVD
@@ -42,9 +43,10 @@ class SGD(AlgoBase):
         self.reconstructed_matrix = dot_product + user_biases_matrix + movie_biases_matrix + self.mu
 
     def _train(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
+        self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
         self.pu, self.qi = SVD.get_embeddings(self.k, self.matrix)
 
-        run_validation = valid_users and valid_movies and valid_ground_truth
+        run_validation = valid_users is not None and valid_movies is not None and valid_ground_truth is not None
         indices = np.arange(len(users))
         mean = np.mean(self.matrix[np.nonzero(self.matrix)])
 
@@ -72,36 +74,40 @@ class SGD(AlgoBase):
                     pbar.update(1)
                 self._update_reconsturcted_matrix()
 
-                predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
+                predictions = self.predict(users, movies)
                 rmse_loss = data_processing.get_score(predictions, ground_truth)
                 writer.add_scalar('rmse', rmse_loss, epoch)
 
-                reconstruction_rmse = None
                 if run_validation:
-                    valid_predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, valid_users, valid_movies)
-                    reconstuction_rmse = data_processing.get_score(valid_predictions, valid_ground_truth)
-                pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss}, val_rmse {reconstruction_rmse:.4f}')
-                writer.add_scalar('val_rmse', reconstruction_rmse, epoch)
+                    valid_predictions = self.predict(valid_users, valid_movies)
+                    reconstruction_rmse = data_processing.get_score(valid_predictions, valid_ground_truth)
+                    pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss:.4f}, val_rmse {reconstruction_rmse:.4f}')
+                    writer.add_scalar('val_rmse', reconstruction_rmse, epoch)
+                else:
+                    pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss}')
 
     def fit(self, users, movies, predictions):
         self.matrix, _ = data_processing.get_data_mask(users, movies, predictions)
-        # sadly incoming users and movie indices start from 1
-        users -= 1
-        movies -= 1
         # TODO: handle variance
 
         self._train(users, movies, predictions)
 
     def predict(self, users, movies):
         predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
-
+        predictions[predictions > 5] = 5
+        predictions[predictions < 1] = 1
         return predictions
 
 
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
-
-    sgd = SGD(k_singular_values=2, verbal=True)
+    train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
+    sgd = SGD(k_singular_values=10, epochs=4, verbal=True)
 
     users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
     sgd.fit(users, movies, predictions)
+    sgd.predict_for_submission('basic_svd_sgd')
+
+    # users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
+    # val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(test_pd)
+    # sgd._train(users, movies, predictions, val_users, val_movies, val_predictions)
