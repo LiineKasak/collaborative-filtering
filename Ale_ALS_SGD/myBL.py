@@ -35,8 +35,39 @@ def create_adjacency_lists(train_user_ids, train_movie_ids, train_ratings):
 
     return (ur, ir)
 
+def fit_model_als(ur, ir, train_user_ids, train_movie_ids, train_ratings, num_epochs):
+    global_average = np.mean(train_ratings)
+    reg_u = 15
+    reg_i = 10
+
+    bi = np.zeros(len(ir.keys()))
+    bu = np.zeros(len(ur.keys()))
+
+    for dummy in range(num_epochs):
+        for i in ir:
+            sum_i = 0
+            for idx in range(len(ir[i])):
+                user_idx = ir[i][idx][0]
+                rating = ir[i][idx][1]
+                sum_i += rating - global_average - bu[user_idx]
+            bi[i] = (sum_i/(reg_i+len(ir[i])))
+
+        for u in ur:
+            sum_u = 0
+            for idx in range(len(ur[u])):
+                item_idx = ur[u][idx][0]
+                rating = ur[u][idx][1]
+                sum_u += rating - global_average - bi[item_idx]
+            bu[u] = (sum_u/(reg_u+len(ur[u])))
+
+        
+
+    return (bu, bi, global_average)
+
+
+
 #fit model to data
-def fit_model(ur, ir, train_user_ids, train_movie_ids, train_ratings, num_epochs):
+def fit_model_sgd(ur, ir, train_user_ids, train_movie_ids, train_ratings, num_epochs):
     global_average = np.mean(train_ratings)
     learning_rate = 0.005
     reg = 0.02
@@ -47,8 +78,9 @@ def fit_model(ur, ir, train_user_ids, train_movie_ids, train_ratings, num_epochs
     for dummy in range(num_epochs):
         for i in range(len(train_ratings)):
             error = train_ratings[i] - (global_average + bu[train_user_ids[i]] + bi[train_movie_ids[i]])
-            bu[train_user_ids[i]] += learning_rate * (error - reg*bu[train_user_ids[i]])
             bi[train_movie_ids[i]] += learning_rate * (error - reg*bi[train_movie_ids[i]])
+            bu[train_user_ids[i]] += learning_rate * (error - reg*bu[train_user_ids[i]])
+            
     
     return (bu, bi, global_average)
 
@@ -72,13 +104,10 @@ def predict(ur, ir, train_user_ids, train_movie_ids, test_user_ids, test_movie_i
 (ur, ir) = create_adjacency_lists(train_users, train_movies, train_predictions)
 
 print('#############################   starting... #############################')
-(bu, bi, global_mean) = fit_model(ur, ir, train_users, train_movies, train_predictions, 10)
+(bu, bi, global_mean) = fit_model_als(ur, ir, train_users, train_movies, train_predictions, 1)
 print('#############################   fit done... #############################')
 print('#############################   start predictions... #############################')
 predictions = predict(ur, ir, train_users, train_movies, test_users, test_movies, bu, bi, global_mean)
-
-# Then compute RMSE
-#accuracy.rmse(predictions)
 
 print('#############################   predictions done.... #############################')
 print('#############################   calc rmse.... #############################')
