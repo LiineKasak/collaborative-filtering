@@ -35,7 +35,7 @@ class SVT(AlgoBase):
         self.reconstructed_matrix = np.zeros((self.number_of_movies, self.number_of_movies))
 
     def fit(self, users, movies, predictions):
-        matrix, mask = data_processing.get_data_mask(users, movies, predictions)
+        matrix, mask = data_processing.get_imputed_data_mask(users, movies, predictions)
 
         Y = np.zeros_like(matrix)
 
@@ -77,7 +77,7 @@ class ASVT(AlgoBase):
         self.b = b
 
     def fit(self, users, movies, predictions):
-        matrix, mask = data_processing.get_data_mask(users, movies, predictions)
+        matrix, mask = data_processing.get_imputed_data_mask(users, movies, predictions)
 
         Y = np.zeros_like(matrix)
 

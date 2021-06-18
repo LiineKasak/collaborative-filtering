@@ -25,7 +25,7 @@ class SVD(AlgoBase):
         self.reconstructed_matrix = np.zeros((self.number_of_movies, self.number_of_movies))
 
     def fit(self, users, movies, predictions):
-        matrix, _ = data_processing.get_data_mask(users, movies, predictions)
+        matrix, _ = data_processing.get_imputed_data_mask(users, movies, predictions)
         U, s, Vt = np.linalg.svd(matrix, full_matrices=False)
 
         S = np.zeros((self.number_of_movies, self.number_of_movies))
@@ -52,7 +52,7 @@ class NMF(AlgoBase):
         self.max_iterations = max_iterations
 
     def fit(self, users, movies, predictions):
-        X, _ = data_processing.get_data_mask(users, movies, predictions)
+        X, _ = data_processing.get_imputed_data_mask(users, movies, predictions)
         X = torch.from_numpy(X)
         X = X.float()
 
@@ -96,7 +96,7 @@ class ALS(AlgoBase):
         self.max_iterations = max_iterations
 
     def fit(self, users, movies, predictions):
-        X, _ = data_processing.get_data_mask(users, movies, predictions)
+        X, _ = data_processing.get_imputed_data_mask(users, movies, predictions)
         X = torch.from_numpy(X)
 
         X = X.float()

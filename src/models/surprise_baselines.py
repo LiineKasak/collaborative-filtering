@@ -19,10 +19,17 @@ class SurpriseBaselines(AlgoBase):
     def predict(self, users, movies):
         num_entries = len(users)
         predictions = np.zeros(num_entries)
+        actual = np.zeros(num_entries)
         for i in range(num_entries):
             uid = str(users[i])  # raw user id (as in the ratings file). They are **strings**!
             iid = str(movies[i])  # raw item id (as in the ratings file). They are **strings**!
+            pred = self.predictor.predict(uid, iid, verbose=False)
+            if not (pred.details['was_impossible']):
+                actual.append(pred.details['actual_k'])
+            # actual[i] = pred
             predictions[i] = self.predictor.predict(uid, iid, verbose=False).est
 
+
+        print("Actual k: ", np.mean(actual))
         # get a prediction for specific users and items.
         return predictions
