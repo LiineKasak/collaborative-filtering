@@ -1,11 +1,11 @@
-import src.utils.data_processing as data_processing
+import data_processing
 import pandas as pd
 from surprise import Dataset, Reader
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 
-class DatasetClass:
+class DatasetWrapper:
     """
     Dataset-class to store information about the dataset at hand. Provides methods to efficiently access the data, and
     information about the statistics of the data.
@@ -19,25 +19,14 @@ class DatasetClass:
 
     """
 
-    def __init__(self, users, movies, ratings):
-        print("start setting up dataset")
-        self.users, self.movies, self.ratings = users, movies, ratings
-        print("1")
-        self.data, self.mask = data_processing.get_imputed_data_mask(self.users, self.movies, self.ratings)
-        print("2")
+    def __init__(self, data_pd):
+        self.data_pd = data_pd
+        self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(data_pd)
 
-        self.movie_dict, self.user_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
-        print("3")
+        self.data, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings)
 
+        self.user_dict, self.movie_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
         self.triples = list(zip(self.users, self.movies, self.ratings))
-        print("5")
-
-        self.tuples = list(zip(self.users, self.movies))
-
-        print("done setting up dataset")
-
-
-
 
     def get_users_movies_predictions(self):
         """ Return lists of users, movies and predictions """

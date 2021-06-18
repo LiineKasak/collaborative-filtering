@@ -1,15 +1,13 @@
 """ Mostly functions adapted from the ones in the jupyter notebook provided by the course """
 import math
+from collections import defaultdict
+
 import numpy as np
 import pandas as pd
-from collections import defaultdict
-from tqdm import tqdm
 from sklearn.metrics import mean_squared_error
 from pathlib import Path
 import os
 from surprise import Dataset, Reader
-import torch
-from torch.utils.data import DataLoader, TensorDataset
 
 number_of_users, number_of_movies = (10000, 1000)
 
@@ -65,7 +63,7 @@ def extract_users_items_predictions(data_pd):
         [np.squeeze(arr) for arr in
          np.split(data_pd.Id.str.extract('r(\d+)_c(\d+)').values.astype(int) - 1, 2, axis=-1)]
     predictions = data_pd.Prediction.values
-    return np.array(users), np.array(movies), np.array(predictions)
+    return users, movies, predictions
 
 
 def read_data():
@@ -75,26 +73,15 @@ def read_data():
     return data_pd
 
 
-def get_sparse_matrix(users, movies, predictions):
-    """ given input data, return a mask containing 1 if the prediction is available,
-    and a data matrix containing that prediction (using mean imputation) """
-    data = np.zeros((number_of_users, number_of_movies))
-
-    for user, movie, pred in zip(users, movies, predictions):
-        data[user][movie] = pred
-
-    return data
-
-
-def get_imputed_data_mask(users, movies, predictions):
+def get_data_mask(users, movies, predictions):
     """ given input data, return a mask containing 1 if the prediction is available,
     and a data matrix containing that prediction (using mean imputation) """
     data = np.full((number_of_users, number_of_movies), np.mean(predictions))
     mask = np.zeros((number_of_users, number_of_movies))  # 0 -> unobserved value, 1->observed value
 
     for user, movie, pred in zip(users, movies, predictions):
-        data[user][movie] = pred
-        mask[user][movie] = 1
+        data[user - 1][movie - 1] = pred
+        mask[user - 1][movie - 1] = 1
 
     return data, mask
 
@@ -105,7 +92,7 @@ def get_users_movies_to_predict():
     submission_pd = pd.read_csv(directory_path + '/data/sampleSubmission.csv')
     sub_users, sub_movies, _ = extract_users_items_predictions(submission_pd)
 
-    return np.array(sub_users), np.array(sub_movies)
+    return sub_users, sub_movies
 
 
 def load_surprise_dataframe_from_arrays(users, movies, predictions):
@@ -156,19 +143,6 @@ def create_submission_file(sub_users, sub_movies, predictions, name='submission'
 
     # submit from terminal:
     # !kaggle competitions submit cil-collaborative-filtering-2021 -f ./data/submissions/name.csv.zip -m '<message>'
-
-
-def create_dataloader(users, movies, predictions, batch_size, device=None):
-    if device is None:
-        device = torch.device("cpu")
-
-    users_torch = torch.tensor(users, device=device)
-    movies_torch = torch.tensor(movies, device=device)
-    predictions_torch = torch.tensor(predictions, device=device)
-
-    dataloader = DataLoader(
-        TensorDataset(users_torch, movies_torch, predictions_torch), batch_size=batch_size)
-    return dataloader
 
 
 def create_dicts(users, movies, ratings):
