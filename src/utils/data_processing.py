@@ -1,5 +1,7 @@
 """ Mostly functions adapted from the ones in the jupyter notebook provided by the course """
 import math
+from collections import defaultdict
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -143,36 +145,13 @@ def create_submission_file(sub_users, sub_movies, predictions, name='submission'
     # !kaggle competitions submit cil-collaborative-filtering-2021 -f ./data/submissions/name.csv.zip -m '<message>'
 
 
-def create_users_dict(users, movies, ratings):
-    unique_users = np.unique(users)
-    movies_ratings_dict = {}
-    user_mean_rating_dict = {}
-    for user_key in unique_users:
-        user_list = []
-        user_mean_rating = 0
-        for idx, user in enumerate(users):
-            if user == user_key:
-                user_list.append((movies[idx], ratings[idx]))
-                user_mean_rating += ratings[idx]
+def create_dicts(users, movies, ratings):
+    movies_ratings_dict = defaultdict(list)
+    users_ratings_dict = defaultdict(list)
 
-        movies_ratings_dict[user_key] = user_list
-        user_mean_rating_dict[user_key] = user_mean_rating/len(user_list)
+    for i in tqdm(range(len(users)), desc='loading dicts'):
+        user, movie, rating = users[i], movies[i], ratings[i]
+        movies_ratings_dict[user].append((movie, rating))
+        users_ratings_dict[movie].append((user, rating))
 
-    return movies_ratings_dict, user_mean_rating_dict
-
-def create_movies_dict(users, movies, ratings):
-    unique_movies = np.unique(movies)
-    users_ratings_dict = {}
-    movie_mean_rating_dict = {}
-    for movie_key in unique_movies:
-        movie_list = []
-        movie_mean_rating = 0
-        for idx, movie in enumerate(movies):
-            if movie == movie_key:
-                movie_list.append((users[idx], ratings[idx]))
-                movie_mean_rating += ratings[idx]
-
-        users_ratings_dict[movie_key] = movie_list
-        movie_mean_rating_dict[movie_key] = movie_mean_rating/len(movie_list)
-
-    return users_ratings_dict, movie_mean_rating_dict
+    return users_ratings_dict, movies_ratings_dict
