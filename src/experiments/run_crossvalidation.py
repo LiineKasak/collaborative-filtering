@@ -38,15 +38,14 @@ als = ALS(track_to_comet=TRACK)
 # nmf = NMF(track_to_comet=TRACK)
 
 
-slope = SurpriseBaselines(predictor=SlopeOne())
+weak_learner = SurpriseBaselines(predictor=KNNWithMeans())
 
 
 # ensemble20 = Bagging(predictor=slope, num_learners=20)
-ensemble_slope = Bagging(predictor=slope, num_learners=10)
-ensemble_svd = Bagging(predictor=als, num_learners=10)
-ensemble_als = Bagging(predictor=svd, num_learners=10)
+ensemble_knn = Bagging(predictor=weak_learner, num_learners=10)
 
-approaches = [(slope, ensemble_slope), (als, ensemble_als), (svd, ensemble_svd)]
+
+approaches = [(weak_learner, ensemble_knn)]
 
 # Read the data from the file:
 data_pd = data_processing.read_data()
