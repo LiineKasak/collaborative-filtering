@@ -2,6 +2,8 @@
 import math
 import numpy as np
 import pandas as pd
+from collections import defaultdict
+from tqdm import tqdm
 from sklearn.metrics import mean_squared_error
 from pathlib import Path
 import os
@@ -73,7 +75,18 @@ def read_data():
     return data_pd
 
 
-def get_data_mask(users, movies, predictions):
+def get_sparse_matrix(users, movies, predictions):
+    """ given input data, return a mask containing 1 if the prediction is available,
+    and a data matrix containing that prediction (using mean imputation) """
+    data = np.zeros((number_of_users, number_of_movies))
+
+    for user, movie, pred in zip(users, movies, predictions):
+        data[user][movie] = pred
+
+    return data
+
+
+def get_imputed_data_mask(users, movies, predictions):
     """ given input data, return a mask containing 1 if the prediction is available,
     and a data matrix containing that prediction (using mean imputation) """
     data = np.full((number_of_users, number_of_movies), np.mean(predictions))
@@ -157,36 +170,14 @@ def create_dataloader(users, movies, predictions, batch_size, device=None):
         TensorDataset(users_torch, movies_torch, predictions_torch), batch_size=batch_size)
     return dataloader
 
-def create_users_dict(users, movies, ratings):
-    unique_users = np.unique(users)
-    movies_ratings_dict = {}
-    user_mean_rating_dict = {}
-    for user_key in unique_users:
-        user_list = []
-        user_mean_rating = 0
-        for idx, user in enumerate(users):
-            if user == user_key:
-                user_list.append((movies[idx], ratings[idx]))
-                user_mean_rating += ratings[idx]
 
-        movies_ratings_dict[user_key] = user_list
-        user_mean_rating_dict[user_key] = user_mean_rating/len(user_list)
+def create_dicts(users, movies, ratings):
+    movies_ratings_dict = defaultdict(list)
+    users_ratings_dict = defaultdict(list)
 
-    return movies_ratings_dict, user_mean_rating_dict
+    for i in tqdm(range(len(users)), desc='loading dicts'):
+        user, movie, rating = users[i], movies[i], ratings[i]
+        movies_ratings_dict[user].append((movie, rating))
+        users_ratings_dict[movie].append((user, rating))
 
-def create_movies_dict(users, movies, ratings):
-    unique_movies = np.unique(movies)
-    users_ratings_dict = {}
-    movie_mean_rating_dict = {}
-    for movie_key in unique_movies:
-        movie_list = []
-        movie_mean_rating = 0
-        for idx, movie in enumerate(movies):
-            if movie == movie_key:
-                movie_list.append((users[idx], ratings[idx]))
-                movie_mean_rating += ratings[idx]
-
-        users_ratings_dict[movie_key] = movie_list
-        movie_mean_rating_dict[movie_key] = movie_mean_rating/len(movie_list)
-
-    return users_ratings_dict, movie_mean_rating_dict
+    return users_ratings_dict, movies_ratings_dict

@@ -1,11 +1,11 @@
-import data_processing
+import src.utils.data_processing as data_processing
 import pandas as pd
 from surprise import Dataset, Reader
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 
-class Dataset:
+class DatasetClass:
     """
     Dataset-class to store information about the dataset at hand. Provides methods to efficiently access the data, and
     information about the statistics of the data.
@@ -19,27 +19,33 @@ class Dataset:
 
     """
 
-    def __init__(self, data_pd):
-        self.data_pd = data_pd
-        self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(data_pd)
+    def __init__(self, users, movies, ratings):
+        print("start setting up dataset")
+        self.users, self.movies, self.ratings = users, movies, ratings
+        print("1")
+        self.data, self.mask = data_processing.get_imputed_data_mask(self.users, self.movies, self.ratings)
+        print("2")
 
-        self.data, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings)
+        self.movie_dict, self.user_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
+        print("3")
 
-        self.user_dict, self.user_mean_ratings = data_processing.create_users_dict(self.users, self.movies,
-                                                                                   self.ratings)
-
-        self.movie_dict, self.movie_mean_ratings = data_processing.create_movies_dict(self.users, self.movies,
-
-                                                                                      self.ratings)
         self.triples = list(zip(self.users, self.movies, self.ratings))
+        print("5")
+
+        self.tuples = list(zip(self.users, self.movies))
+
+        print("done setting up dataset")
+
+
+
 
     def get_users_movies_predictions(self):
         """ Return lists of users, movies and predictions """
         return self.users, self.movies, self.ratings
 
-    def get_data_statistics(self):
-        """ Return the overall mean over all users and all movies as 2 separate dictionaries"""
-        return self.user_mean_ratings, self.movie_mean_ratings
+    # def get_data_statistics(self):
+    #     """ Return the overall mean over all users and all movies as 2 separate dictionaries"""
+    #     return self.user_mean_ratings, self.movie_mean_ratings
 
     def get_data_and_mask(self):
         """ Return the data-matrix (users x movies) and the corresponding mask of available ratings """
