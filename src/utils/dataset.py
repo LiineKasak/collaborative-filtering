@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 
-class Dataset:
+class DatasetWrapper:
     """
     Dataset-class to store information about the dataset at hand. Provides methods to efficiently access the data, and
     information about the statistics of the data.
@@ -25,21 +25,16 @@ class Dataset:
 
         self.data, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings)
 
-        self.user_dict, self.user_mean_ratings = data_processing.create_users_dict(self.users, self.movies,
-                                                                                   self.ratings)
-
-        self.movie_dict, self.movie_mean_ratings = data_processing.create_movies_dict(self.users, self.movies,
-
-                                                                                      self.ratings)
+        self.user_dict, self.movie_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
         self.triples = list(zip(self.users, self.movies, self.ratings))
 
     def get_users_movies_predictions(self):
         """ Return lists of users, movies and predictions """
         return self.users, self.movies, self.ratings
 
-    def get_data_statistics(self):
-        """ Return the overall mean over all users and all movies as 2 separate dictionaries"""
-        return self.user_mean_ratings, self.movie_mean_ratings
+    # def get_data_statistics(self):
+    #     """ Return the overall mean over all users and all movies as 2 separate dictionaries"""
+    #     return self.user_mean_ratings, self.movie_mean_ratings
 
     def get_data_and_mask(self):
         """ Return the data-matrix (users x movies) and the corresponding mask of available ratings """
