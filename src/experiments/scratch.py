@@ -18,13 +18,14 @@ number_of_movies = data_processing.get_number_of_movies()
 
 
 data_pd = data_processing.read_data()
-users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
+data = dataset.DatasetWrapper(data_pd)
 
-data = dataset.DatasetClass(users, movies, predictions)
+data.movies_per_user_representation()
 #
-# knn = KNN()
-# knn.fit(users, movies, predictions)
-# knn.predict(users, movies)
+knn = KNN()
+
+output = knn.cross_validate(data_pd)
+print(output)
 # # rsmes = bag.cross_validate(data_pd)
 # # print(rsmes)
 
