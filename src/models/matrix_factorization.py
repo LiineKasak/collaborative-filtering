@@ -73,8 +73,8 @@ class NMF(AlgoBase):
             optimizer.step()
 
             # Project onto valid set of solutions
-            U.data.clamp_(min=0)
-            V.data.clamp_(min=0)
+            U.data_matrix.clamp_(min=0)
+            V.data_matrix.clamp_(min=0)
 
         self.reconstructed_matrix = U @ V.t()
 
@@ -128,8 +128,8 @@ class ALS(AlgoBase):
             optimizer_V.step()
 
             # Project onto valid set of solutions
-            U.data.clamp_(min=0)
-            V.data.clamp_(min=0)
+            U.data_matrix.clamp_(min=0)
+            V.data_matrix.clamp_(min=0)
 
         self.reconstructed_matrix = U @ V.t()
 

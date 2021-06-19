@@ -1,4 +1,6 @@
-import data_processing
+import numpy as np
+
+from utils import data_processing
 import pandas as pd
 from surprise import Dataset, Reader
 import torch
@@ -19,14 +21,30 @@ class DatasetWrapper:
 
     """
 
-    def __init__(self, data_pd):
-        self.data_pd = data_pd
-        self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(data_pd)
+    def initialize(self, users, movies, predictions):
+        self.users, self.movies, self.ratings = users, movies, predictions
 
-        self.data, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings)
+        self.data_matrix, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings)
 
-        self.user_dict, self.movie_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
+        self.movie_dict, self.user_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
         self.triples = list(zip(self.users, self.movies, self.ratings))
+
+        self.num_users, self.num_movies = data_processing.get_number_of_users(), data_processing.get_number_of_movies()
+
+        self.user_per_movie_encodings = None
+
+        self.movies_per_user_representation()
+
+        self.compute_means()
+
+    def __init__(self, *args):
+        if len(args) == 1:
+            self.data_pd = args[0]
+            self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(self.data_pd)
+            self.initialize(self.users, self.movies, self.ratings)
+        else:
+            self.initialize(*args)
+
 
     def get_users_movies_predictions(self):
         """ Return lists of users, movies and predictions """
@@ -38,7 +56,7 @@ class DatasetWrapper:
 
     def get_data_and_mask(self):
         """ Return the data-matrix (users x movies) and the corresponding mask of available ratings """
-        return self.data, self.mask
+        return self.data_matrix, self.mask
 
     def create_dataloader(self, batch_size, device=None):
         """ Create a pytorch dataloader of this dataset """
@@ -66,3 +84,27 @@ class DatasetWrapper:
         data = Dataset.load_from_df(df[['users', 'items', 'predictions']], reader=reader)
 
         return data.build_full_trainset()
+
+    def get_user_vector(self, user_id):
+        return self.user_to_movie_vector(self.user_dict[user_id]).reshape(1, -1)
+
+    def user_to_movie_vector(self, user_array):
+        user_per_movie_encoding = np.zeros(self.num_movies)
+        for (movie, rating) in user_array:
+            user_per_movie_encoding[movie] = rating
+
+        return user_per_movie_encoding
+
+    def movies_per_user_representation(self):
+        # if self.user_per_movie_encodings is not None:
+        #     return self.user_per_movie_encodings
+
+        self.user_per_movie_encodings = np.zeros((self.num_users, self.num_movies))
+        for user in range(self.num_users):
+            self.user_per_movie_encodings[user] = self.user_to_movie_vector(self.user_dict[user])
+
+        return self.user_per_movie_encodings
+
+    def compute_means(self):
+        self.movie_means = np.mean(self.data_matrix)
+        pass
