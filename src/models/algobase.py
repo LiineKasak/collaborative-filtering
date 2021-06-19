@@ -90,7 +90,6 @@ class AlgoBase():
 
             predictions = self.predict(val_users, val_movies)
             rmses.append(data_processing.get_score(predictions, val_predictions))
-            print("rmse", rmses)
             bar.update()
 
         bar.close()

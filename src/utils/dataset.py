@@ -21,10 +21,14 @@ class DatasetWrapper:
 
     """
 
-    def initialize(self, users, movies, predictions):
-        self.users, self.movies, self.ratings = users, movies, predictions
+    def __init__(self, *args):
+        if len(args) == 1:
+            self.data_pd = args[0]
+            self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(self.data_pd)
+        else:
+            self.users, self.movies, self.ratings = args[0], args[1], args[2]
 
-        self.data_matrix, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings)
+        self.data_matrix, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings, impute=False)
 
         self.movie_dict, self.user_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
         self.triples = list(zip(self.users, self.movies, self.ratings))
@@ -35,16 +39,8 @@ class DatasetWrapper:
 
         self.movies_per_user_representation()
 
-        self.compute_means()
-
-    def __init__(self, *args):
-        if len(args) == 1:
-            self.data_pd = args[0]
-            self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(self.data_pd)
-            self.initialize(self.users, self.movies, self.ratings)
-        else:
-            self.initialize(*args)
-
+        self.movie_means = np.nanmean(self.data_matrix, axis=0)
+        self.user_means = np.nanmean(self.data_matrix, axis=1)
 
     def get_users_movies_predictions(self):
         """ Return lists of users, movies and predictions """
@@ -96,15 +92,9 @@ class DatasetWrapper:
         return user_per_movie_encoding
 
     def movies_per_user_representation(self):
-        # if self.user_per_movie_encodings is not None:
-        #     return self.user_per_movie_encodings
-
         self.user_per_movie_encodings = np.zeros((self.num_users, self.num_movies))
         for user in range(self.num_users):
             self.user_per_movie_encodings[user] = self.user_to_movie_vector(self.user_dict[user])
 
         return self.user_per_movie_encodings
 
-    def compute_means(self):
-        self.movie_means = np.mean(self.data_matrix)
-        pass
