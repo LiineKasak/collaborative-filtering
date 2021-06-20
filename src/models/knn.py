@@ -20,20 +20,20 @@ eps = 1e-6
 class KNN(AlgoBase):
     """ Prediction based on dimensionality reduction through singular value decomposition """
 
-    def __init__(self, n_neighbors=5, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s",
+    def __init__(self, algorithm='auto', n_neighbors=5, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s",
                  projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
         AlgoBase.__init__(self,  track_to_comet=track_to_comet, method_name=method_name, api_key=api_key,
                           projectname=projectname, workspace=workspace, tag=tag)
 
         self.n_neighbors = n_neighbors
-        self.knn = NearestNeighbors(algorithm='ball_tree', n_neighbors=5, n_jobs=-1)
+        self.knn = NearestNeighbors(algorithm=algorithm, n_neighbors=n_neighbors, n_jobs=-1)
         self.data_wrapper = None
         self.nearest_neighbors = None
 
     def compute_neighbors(self):
-        user_vectors = self.data_wrapper.user_per_movie_encodings
-        _, indices = self.knn.kneighbors(user_vectors, n_neighbors=self.n_neighbors)
-        movies = self.data_wrapper.user_per_movie_encodings[indices]  # shape (10000, 5, 1000)
+        user_vectors = self.data_wrapper.user_per_movie_encodings   # shape (10000, 1000)
+        _, indices = self.knn.kneighbors(user_vectors, n_neighbors=self.n_neighbors)    # shape (10000, k)
+        movies = self.data_wrapper.user_per_movie_encodings[indices]  # shape (10000, k, 1000)
 
         movies[movies == 0] = np.nan
 
@@ -51,13 +51,47 @@ class KNN(AlgoBase):
         self.knn.fit(matrix)
 
 
-
     def predict(self, users, movies):
+        return self.predict_movie_mean(users, movies)
+
+    def predict_combined_mean(self, users, movies):
         self.compute_neighbors()
 
         predictions = self.nearest_neighbors[tuple([users, movies])]
         for i, pred in enumerate(predictions):
+            r = self.data_wrapper.rating_available(users[i], movies[i])
+            if (r > 0):
+                print("we have this rating")
+                predictions[i] = r
             if np.isnan(pred):
-                predictions[i] = self.data_wrapper.movie_means[movies[i]]
+                predictions[i] = (self.data_wrapper.movie_means[movies[i]] + self.data_wrapper.user_means[users[i]])/2
+
+        return predictions
+
+    def predict_movie_mean(self, users, movies):
+            self.compute_neighbors()
+
+            predictions = self.nearest_neighbors[tuple([users, movies])]
+            for i, pred in enumerate(predictions):
+                r = self.data_wrapper.rating_available(users[i], movies[i])
+                if (r > 0):
+                    print("we have this rating")
+                    predictions[i] = r
+                if np.isnan(pred):
+                    predictions[i] = self.data_wrapper.movie_means[movies[i]]
+
+            return predictions
+
+    def predict_user_mean(self, users, movies):
+        self.compute_neighbors()
+
+        predictions = self.nearest_neighbors[tuple([users, movies])]
+        for i, pred in enumerate(predictions):
+            r = self.data_wrapper.rating_available(users[i], movies[i])
+            if (r > 0):
+                print("we have this rating")
+                predictions[i] = r
+            if np.isnan(pred):
+                predictions[i] = self.data_wrapper.user_means[users[i]]
 
         return predictions

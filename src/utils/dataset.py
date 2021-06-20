@@ -42,6 +42,15 @@ class DatasetWrapper:
         self.movie_means = np.nanmean(self.data_matrix, axis=0)
         self.user_means = np.nanmean(self.data_matrix, axis=1)
 
+    def rating_available(self, user, query_movie):
+        """ Determine if this user has already rated the query movie"""
+        user_dict = self.user_dict[user]
+        for (movie, rating) in user_dict:
+            if movie == query_movie:
+                return rating
+            else:
+                return 0
+
     def get_users_movies_predictions(self):
         """ Return lists of users, movies and predictions """
         return self.users, self.movies, self.ratings
