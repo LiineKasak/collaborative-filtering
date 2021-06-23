@@ -42,8 +42,10 @@ class SGD(AlgoBase):
         movie_biases_matrix = np.reshape(self.bi, (1, self.number_of_movies))
         self.reconstructed_matrix = dot_product + user_biases_matrix + movie_biases_matrix + self.mu
 
-    def _train(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
+    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
         self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
+        # normalized_matrix = data_processing.normalize_by_variance(self.matrix)
+        # self.pu, self.qi = SVD.get_embeddings(self.k, normalized_matrix)
         self.pu, self.qi = SVD.get_embeddings(self.k, self.matrix)
 
         run_validation = valid_users is not None and valid_movies is not None and valid_ground_truth is not None
@@ -85,11 +87,6 @@ class SGD(AlgoBase):
                 else:
                     pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss}')
 
-    def fit(self, users, movies, predictions):
-        self.matrix, _ = data_processing.get_data_mask(users, movies, predictions)
-
-        self._train(users, movies, predictions)
-
     def predict(self, users, movies):
         predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
         predictions[predictions > 5] = 5
@@ -113,4 +110,4 @@ if __name__ == '__main__':
         train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
         users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
         val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(test_pd)
-        sgd._train(users, movies, predictions, val_users, val_movies, val_predictions)
+        sgd.fit(users, movies, predictions, val_users, val_movies, val_predictions)
