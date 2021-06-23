@@ -10,7 +10,7 @@ from tqdm import tqdm
 EPSILON = 1e-5
 
 
-class SGD(AlgoBase):
+class SVD_SGD(AlgoBase):
     """
     Running SGD on SVD initialized embeddings.
     By Surprise documentation:
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     data_pd = data_processing.read_data()
     k = 10
     epochs = 100
-    sgd = SGD(k_singular_values=k, epochs=epochs, verbal=True)
+    sgd = SVD_SGD(k_singular_values=k, epochs=epochs, verbal=True)
 
     submit = False
 
