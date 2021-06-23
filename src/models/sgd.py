@@ -36,7 +36,7 @@ class SGD(AlgoBase):
         self.bi = np.zeros(self.number_of_movies)  # item bias
         self.mu = 0
 
-    def _update_reconsturcted_matrix(self):
+    def _update_reconstructed_matrix(self):
         dot_product = self.pu.dot(self.qi.T)
         user_biases_matrix = np.reshape(self.bu, (self.number_of_users, 1))
         movie_biases_matrix = np.reshape(self.bi, (1, self.number_of_movies))
@@ -48,31 +48,30 @@ class SGD(AlgoBase):
 
         run_validation = valid_users is not None and valid_movies is not None and valid_ground_truth is not None
         indices = np.arange(len(users))
-        mean = np.mean(self.matrix[np.nonzero(self.matrix)])
+        # global_mean = np.mean(self.matrix[np.nonzero(self.matrix)])
 
         time_string = time.strftime("%Y%m%d-%H%M%S")
         log_dir = f'./logs/SGD_{time_string}'
         writer = SummaryWriter(log_dir)
-        previous_loss = 100
 
         with tqdm(total=self.epochs * len(users), disable=not self.verbal) as pbar:
             for epoch in range(self.epochs):
                 np.random.shuffle(indices)
                 for user, movie in zip(users[indices], movies[indices]):
-                    lagrangian = self.bu[user] + self.bi[movie] - mean
-                    u_values = self.pu[user]
-                    z_values = self.qi[movie]
-                    residual = self.matrix[user, movie] - self.bu[user] - self.bi[movie] - np.dot(u_values, z_values)
+                    prediction = self.bu[user] + self.bi[movie] + np.dot(self.pu[user], self.qi[movie])
+                    error = self.matrix[user, movie] - prediction
+                    # bias_change = self.learning_rate * (error - self.regularization * (self.bu[user] + self.bi[movie] - global_mean))
 
-                    self.pu[user] *= (1 - self.regularization * self.learning_rate)
-                    self.pu[user] += self.learning_rate * residual * z_values
-                    self.qi[movie] *= (1 - self.regularization * self.learning_rate)
-                    self.qi[movie] += self.learning_rate * residual * z_values
+                    self.bu[user] += self.learning_rate * (error - self.regularization * self.bu[user])
+                    self.bi[movie] += self.learning_rate * (error - self.regularization * self.bi[movie])
 
-                    self.bu[user] += self.learning_rate * (residual - self.regularization * lagrangian)
-                    self.bi[movie] += self.learning_rate * (residual - self.regularization * lagrangian)
+                    self.pu[user] += self.learning_rate * (
+                            error * self.qi[movie] - self.regularization * self.pu[user])
+                    self.qi[movie] += self.learning_rate * (
+                            error * self.pu[user] - self.regularization * self.qi[movie])
+
                     pbar.update(1)
-                self._update_reconsturcted_matrix()
+                self._update_reconstructed_matrix()
 
                 predictions = self.predict(users, movies)
                 rmse_loss = data_processing.get_score(predictions, ground_truth)
@@ -88,7 +87,6 @@ class SGD(AlgoBase):
 
     def fit(self, users, movies, predictions):
         self.matrix, _ = data_processing.get_data_mask(users, movies, predictions)
-        # TODO: handle variance
 
         self._train(users, movies, predictions)
 
@@ -101,13 +99,18 @@ class SGD(AlgoBase):
 
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
-    train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
-    sgd = SGD(k_singular_values=10, epochs=4, verbal=True)
+    k = 10
+    epochs = 100
+    sgd = SGD(k_singular_values=k, epochs=epochs, verbal=True)
 
-    users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
-    sgd.fit(users, movies, predictions)
-    sgd.predict_for_submission('basic_svd_sgd')
+    submit = False
 
-    # users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
-    # val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(test_pd)
-    # sgd._train(users, movies, predictions, val_users, val_movies, val_predictions)
+    if submit:
+        users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
+        sgd.fit(users, movies, predictions)
+        sgd.predict_for_submission(f'svd_sgd_norm_k{k}_{epochs}')
+    else:
+        train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
+        users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
+        val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(test_pd)
+        sgd._train(users, movies, predictions, val_users, val_movies, val_predictions)
