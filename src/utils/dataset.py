@@ -36,11 +36,18 @@ class DatasetWrapper:
         self.num_users, self.num_movies = data_processing.get_number_of_users(), data_processing.get_number_of_movies()
 
         self.user_per_movie_encodings = None
+        self.movie_per_user_encodings = None
 
         self.movies_per_user_representation()
+        self.users_per_movie_representation()
 
         self.movie_means = np.nanmean(self.data_matrix, axis=0)
         self.user_means = np.nanmean(self.data_matrix, axis=1)
+
+        self.movie_bias = np.zeros(self.movie_means.shape)     #self.movie_means - np.mean(self.movie_means)
+        self.user_bias = np.zeros(self.user_means.shape)        #self.user_means - np.mean(self.user_means)
+
+
 
     def rating_available(self, user, query_movie):
         """ Determine if this user has already rated the query movie"""
@@ -100,10 +107,23 @@ class DatasetWrapper:
 
         return user_per_movie_encoding
 
+    def movie_to_user_vector(self, movie_array):
+        movie_per_user_encoding = np.zeros(self.num_users)
+        for (user, rating) in movie_array:
+            movie_per_user_encoding[user] = rating
+
+        return movie_per_user_encoding
+
     def movies_per_user_representation(self):
-        self.user_per_movie_encodings = np.zeros((self.num_users, self.num_movies))
+        self.movie_per_user_encodings = np.zeros((self.num_users, self.num_movies))
         for user in range(self.num_users):
-            self.user_per_movie_encodings[user] = self.user_to_movie_vector(self.user_dict[user])
+            self.movie_per_user_encodings[user] = self.user_to_movie_vector(self.user_dict[user])
+
+        return self.movie_per_user_encodings
+
+    def users_per_movie_representation(self):
+        self.user_per_movie_encodings = np.zeros((self.num_movies, self.num_users))
+        for movie in range(self.num_movies):
+            self.user_per_movie_encodings[movie] = self.movie_to_user_vector(self.movie_dict[movie])
 
         return self.user_per_movie_encodings
-

@@ -17,6 +17,87 @@ from .algobase import AlgoBase
 eps = 1e-6
 
 
+class KNNUserMovie(AlgoBase):
+    """ Prediction based on dimensionality reduction through singular value decomposition """
+
+    def __init__(self, user_metric='cosine', user_algorithm='auto', movie_metric='cosine', movie_algorithm='auto', n_user_neighbors=5,  n_movie_neighbors=5, track_to_comet=False, method_name=None,
+                 api_key="rISpuwcLQoWU6qan4jRCAPy5s",
+                 projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
+        AlgoBase.__init__(self, track_to_comet=track_to_comet, method_name=method_name, api_key=api_key,
+                          projectname=projectname, workspace=workspace, tag=tag)
+
+        self.n_user_neighbors = n_user_neighbors
+        self.n_movie_neighbors = n_movie_neighbors
+        self.movie_knn = NearestNeighbors(metric=movie_metric, algorithm=movie_algorithm, n_neighbors=n_movie_neighbors, n_jobs=-1)
+        self.user_knn = NearestNeighbors(metric=user_metric, algorithm=user_algorithm, n_neighbors=n_user_neighbors, n_jobs=-1)
+        self.knn_euclidean = KNN(metric='euclidean', algorithm='auto', n_neighbors=500)
+
+
+        self.data_wrapper = None
+        self.movie_nearest_neighbors = None
+        self.user_nearest_neighbors = None
+
+        self.user_weight = 0
+
+    def compute_neighbors(self):
+        # Compute nearest neighbors of users
+        user_vectors = self.data_wrapper.movie_per_user_encodings  # shape (10000, 1000)
+        _, indices = self.user_knn.kneighbors(user_vectors, n_neighbors=self.n_user_neighbors)  # shape (10000, k)
+        movies = self.data_wrapper.movie_per_user_encodings[indices]  # shape (10000, k, 1000)
+        movies[movies == 0] = np.nan
+        user_mean_values = np.nanmean(movies, axis=1)  # shape (10000, 1000) (average over the 5 neighbors)
+
+        self.user_nearest_neighbors = user_mean_values
+
+        # Compute nearest neighbors of movies
+        movie_vectors = self.data_wrapper.user_per_movie_encodings  # shape (10000, 1000)
+        _, indices = self.movie_knn.kneighbors(movie_vectors, n_neighbors=self.n_movie_neighbors)  # shape (10000, k)
+        users = self.data_wrapper.user_per_movie_encodings[indices]  # shape (10000, k, 1000)
+        users[users == 0] = np.nan
+        movie_mean_values = np.nanmean(users, axis=1)  # shape (10000, 1000) (average over the 5 neighbors)
+
+        self.movie_nearest_neighbors = movie_mean_values
+
+    def fit(self, data_wrapper):
+        self.data_wrapper = data_wrapper
+        user_matrix = data_wrapper.movies_per_user_representation()
+        movie_matrix = data_wrapper.users_per_movie_representation()
+
+        self.user_knn.fit(user_matrix)
+        self.knn_euclidean.fit(data_wrapper)
+        self.movie_knn.fit(movie_matrix)
+        self.compute_neighbors()
+
+
+    def predict(self, users, movies):
+
+        user_predictions = self.user_nearest_neighbors[tuple([users, movies])]
+        movie_predictions = self.movie_nearest_neighbors[tuple([movies, users])]
+        euclidean_user_predictions = self.knn_euclidean.nearest_neighbors[tuple([users, movies])]
+
+        mask_either_is_nan = np.logical_or(np.isnan(user_predictions), np.isnan(movie_predictions))
+        predictions = movie_predictions
+        # predictions[np.isnan(user_predictions)] = movie_predictions[np.isnan(user_predictions)]
+
+
+        # predictions[~mask_either_is_nan] = self.user_weight*user_predictions[~mask_either_is_nan] + (1-self.user_weight)*movie_predictions[~mask_either_is_nan]
+        # predictions[predictions < 3.5] = euclidean_user_predictions[predictions < 3.5]
+
+        counter_nan = 0
+
+        for i, pred in enumerate(predictions):
+            r = self.data_wrapper.rating_available(users[i], movies[i])
+            if (r > 0):
+                print("we have this rating")
+                predictions[i] = r
+            if np.isnan(pred):
+                counter_nan += 1
+
+                predictions[i] = self.data_wrapper.user_means[users[i]]
+
+        print("had to impute ", counter_nan, " movies")
+        return predictions
+
 class KNNBag(AlgoBase):
     def __init__(self, knns=None, track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s",
                  projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
@@ -95,18 +176,30 @@ class KNN(AlgoBase):
         self.data_wrapper = None
         self.nearest_neighbors = None
 
+
+        self.user_based = True
+        # self.item_based = False
+
     def compute_neighbors(self):
-        user_vectors = self.data_wrapper.user_per_movie_encodings  # shape (10000, 1000)
-        _, indices = self.knn.kneighbors(user_vectors, n_neighbors=self.n_neighbors)  # shape (10000, k)
-        movies = self.data_wrapper.user_per_movie_encodings[indices]  # shape (10000, k, 1000)
 
-        movies[movies == 0] = np.nan
+        if self.user_based:
+            user_vectors = self.data_wrapper.movie_per_user_encodings  # shape (10000, 1000)
+            _, indices = self.knn.kneighbors(user_vectors, n_neighbors=self.n_neighbors)  # shape (10000, k)
+            movies = self.data_wrapper.movie_per_user_encodings[indices]  # shape (10000, k, 1000)
+            movies[movies == 0] = np.nan
+            user_mean_values = np.nanmean(movies, axis=1)  # shape (10000, 1000) (average over the 5 neighbors)
 
-        mean_value = np.nanmean(movies, axis=1)  # shape (10000, 1000) (average over the 5 neighbors)
+            self.nearest_neighbors = user_mean_values
 
-        # TODO: this could (in theory) contain nans
+        else:
+            movie_vectors = self.data_wrapper.user_per_movie_encodings  # shape (10000, 1000)
+            _, indices = self.knn.kneighbors(movie_vectors,
+                                                   n_neighbors=self.n_neighbors)  # shape (10000, k)
+            users = self.data_wrapper.user_per_movie_encodings[indices]  # shape (10000, k, 1000)
+            users[users == 0] = np.nan
+            movie_mean_values = np.nanmean(users, axis=1)  # shape (10000, 1000) (average over the 5 neighbors)
 
-        self.nearest_neighbors = mean_value
+            self.nearest_neighbors = movie_mean_values
 
     def fit(self, data_wrapper):
         self.data_wrapper = data_wrapper
@@ -118,24 +211,16 @@ class KNN(AlgoBase):
     def predict(self, users, movies):
         return self.predict_movie_mean(users, movies)
 
-    def predict_combined_mean(self, users, movies):
-        self.compute_neighbors()
 
-        predictions = self.nearest_neighbors[tuple([users, movies])]
-        for i, pred in enumerate(predictions):
-            r = self.data_wrapper.rating_available(users[i], movies[i])
-            if (r > 0):
-                print("we have this rating")
-                predictions[i] = r
-            if np.isnan(pred):
-                predictions[i] = (self.data_wrapper.movie_means[movies[i]] + self.data_wrapper.user_means[users[i]]) / 2
-
-        return predictions
 
     def predict_movie_mean(self, users, movies):
         self.compute_neighbors()
 
-        predictions = self.nearest_neighbors[tuple([users, movies])]
+        if(self.user_based):
+            predictions = self.nearest_neighbors[tuple([users, movies])]
+        else:
+            predictions = self.nearest_neighbors[tuple([movies, users])]
+
         counter_nan = 0
         for i, pred in enumerate(predictions):
             r = self.data_wrapper.rating_available(users[i], movies[i])
@@ -150,20 +235,4 @@ class KNN(AlgoBase):
 
         return predictions
 
-    def predict_user_mean(self, users, movies):
-        self.compute_neighbors()
 
-        predictions = self.nearest_neighbors[tuple([users, movies])]
-        counter_nan = 0
-
-        for i, pred in enumerate(predictions):
-            r = self.data_wrapper.rating_available(users[i], movies[i])
-            if (r > 0):
-                print("we have this rating")
-                predictions[i] = r
-            if np.isnan(pred):
-                counter_nan += 1
-
-                predictions[i] = self.data_wrapper.user_means[users[i]]
-
-        return predictions
