@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.model_selection import KFold
 from tqdm import tqdm
 from comet_ml import Experiment
+import pickle
 
 from src.utils import data_processing
 
@@ -41,7 +42,7 @@ class AlgoBase():
         """ Predict ratings for a given set of users and movies """
         raise NotImplementedError("predict-function has to be implemented! ")
 
-    def fit(self, users, movies, predictions):
+    def fit(self, train_users, train_movies, train_predictions, test_users=None, test_movies=None, test_predictions=None):
         """ Train / Fit the predictor """
         raise NotImplementedError("fit-function has to be implemented! ")
 
@@ -90,3 +91,6 @@ class AlgoBase():
             )
         print(rmses)
         return rmses
+
+    def serialize(self, filename: str):
+        pickle.dump(self, open(filename, 'wb'))

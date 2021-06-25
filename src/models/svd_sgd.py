@@ -18,7 +18,7 @@ class SVD_SGD(AlgoBase):
     """
 
     def __init__(self, k_singular_values=17, epochs=100, learning_rate=0.001, regularization=0.05, verbal=False,
-                 track_to_comet=False):
+                 enable_bias=True, track_to_comet=False):
         AlgoBase.__init__(self, track_to_comet)
 
         self.k = k_singular_values  # number of singular values to use
@@ -35,6 +35,8 @@ class SVD_SGD(AlgoBase):
         self.bu = np.zeros(self.number_of_users)  # user bias
         self.bi = np.zeros(self.number_of_movies)  # item bias
         self.mu = 0
+
+        self.enable_bias = enable_bias
 
     def _update_reconstructed_matrix(self):
         dot_product = self.pu.dot(self.qi.T)
@@ -64,8 +66,9 @@ class SVD_SGD(AlgoBase):
                     error = self.matrix[user, movie] - prediction
                     # bias_change = self.learning_rate * (error - self.regularization * (self.bu[user] + self.bi[movie] - global_mean))
 
-                    self.bu[user] += self.learning_rate * (error - self.regularization * self.bu[user])
-                    self.bi[movie] += self.learning_rate * (error - self.regularization * self.bi[movie])
+                    if self.enable_bias:
+                        self.bu[user] += self.learning_rate * (error - self.regularization * self.bu[user])
+                        self.bi[movie] += self.learning_rate * (error - self.regularization * self.bi[movie])
 
                     self.pu[user] += self.learning_rate * (
                             error * self.qi[movie] - self.regularization * self.pu[user])
@@ -86,6 +89,8 @@ class SVD_SGD(AlgoBase):
                     writer.add_scalar('val_rmse', reconstruction_rmse, epoch)
                 else:
                     pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss}')
+        rmse = reconstruction_rmse if reconstruction_rmse is not None else rmse_loss + 1
+        return rmse, self.epochs
 
     def predict(self, users, movies):
         predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
