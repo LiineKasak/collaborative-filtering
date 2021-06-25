@@ -1,5 +1,5 @@
 import numpy as np
-from utils import data_processing
+from ..utils import data_processing
 from .algobase import AlgoBase
 
 
@@ -27,3 +27,15 @@ class SVD(AlgoBase):
         predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
 
         return predictions
+
+    @staticmethod
+    def get_embeddings(k, matrix):
+        U, s, Vt = np.linalg.svd(matrix, full_matrices=False)
+
+        nr_movies = data_processing.get_number_of_movies()
+        S_sqrt = np.zeros((nr_movies, nr_movies))
+        S_sqrt[:k, :k] = np.diag(np.sqrt(s[:k]))
+
+        U_embedding = U.dot(S_sqrt)
+        Vt_embedding = S_sqrt.dot(Vt).T
+        return U_embedding[:, :k], Vt_embedding[:, :k]
