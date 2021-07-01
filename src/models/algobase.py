@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold
 from tqdm import tqdm
 from comet_ml import Experiment
 
-from src.utils import data_processing
+from src.utils import data_processing, dataset
 
 
 class AlgoBase():
@@ -25,7 +25,7 @@ class AlgoBase():
         else:
             self.method_name = self.__class__.__name__
 
-        print("method name:", self.method_name)
+        # print("method name:", self.method_name)
         self.track_on_comet = track_to_comet
         self.api_key = api_key
         self.projectname = projectname

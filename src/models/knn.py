@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 from sklearn.neighbors import NearestNeighbors, KNeighborsRegressor
 from tqdm import tqdm
-from sklearn.preprocessing import RobustScaler, PowerTransformer
+from sklearn.preprocessing import RobustScaler, PowerTransformer, MinMaxScaler
 from src.models.svd import SVD
 from utils import data_processing, dataset
 import torch
@@ -17,11 +17,102 @@ from .algobase import AlgoBase
 from models.svd_sgd import SVD_SGD
 
 eps = 1e-6
+
+
+class KNNImprovedSVDEmbeddings(AlgoBase):
+    """ Prediction based on dimensionality reduction through singular value decomposition """
+
+    def __init__(self, epochs=10, k=5, user_based=True, metric='cosine', algorithm='auto', n_neighbors=5, track_to_comet=False,
+                 method_name=None,
+                 api_key="rISpuwcLQoWU6qan4jRCAPy5s",
+                 projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
+        AlgoBase.__init__(self, track_to_comet=track_to_comet, method_name=method_name, api_key=api_key,
+                          projectname=projectname, workspace=workspace, tag=tag)
+
+        self.n_neighbors = n_neighbors
+        self.knn = NearestNeighbors(metric=metric, algorithm=algorithm, n_neighbors=n_neighbors, n_jobs=-1)
+        self.data_wrapper = None
+        self.nearest_neighbors = None
+
+        self.k = k
+        self.user_based = user_based
+        self.transformer = MinMaxScaler(feature_range=(1,5))
+
+        self.svd = SVD_SGD(k_singular_values=k, epochs=epochs)
+
+        print("using power transformer")
+
+    def compute_neighbors(self):
+
+        if self.user_based:
+            user_vectors = self.user_embeddings  # shape (10000, 1000)
+            _, indices = self.knn.kneighbors(user_vectors, n_neighbors=self.n_neighbors)  # shape (10000, k)
+            # movies = self.movie_embeddings  # shape (10000, k, 1000)
+            # movies[movies == 0] = np.nan
+            # user_mean_values = np.nanmean(movies, axis=1)  # shape (10000, 1000) (average over the 5 neighbors)
+            low_rank = self.user_embeddings.dot(self.movie_embeddings.T)
+            np.copyto(low_rank, self.data_wrapper.data_matrix, where=self.data_wrapper.mask.astype(bool))
+
+            ratings = low_rank[indices]
+
+            nearest_neighbors_normalized = np.mean(ratings, axis=1)
+            np.copyto(nearest_neighbors_normalized, self.data_wrapper.data_matrix,
+                      where=self.data_wrapper.mask.astype(bool))
+
+            self.nearest_neighbors = self.transformer.inverse_transform(nearest_neighbors_normalized)
+
+
+        else:
+            movie_vectors = self.movie_embeddings  # shape (10000, 1000)
+            _, indices = self.knn.kneighbors(movie_vectors, n_neighbors=self.n_neighbors)  # shape (10000, k)
+            # movies = self.movie_embeddings  # shape (10000, k, 1000)
+            # movies[movies == 0] = np.nan
+            # user_mean_values = np.nanmean(movies, axis=1)  # shape (10000, 1000) (average over the 5 neighbors)
+            ratings = np.tensordot(self.movie_embeddings[indices], np.transpose(self.user_embeddings), axes=1)
+            self.nearest_neighbors = np.mean(ratings, axis=1)
+
+    def fit(self, data_wrapper):
+        self.data_wrapper = data_wrapper
+        data = data_wrapper.data_matrix
+        data = self.transformer.fit_transform(data)
+
+        self.svd.fit(data_wrapper)
+        #self.user_embeddings, self.movie_embeddings = SVD.get_embeddings(self.k, data)
+        self.user_embeddings = self.svd.pu
+        self.movie_embeddings = self.svd.qi
+        if self.user_based:
+            self.knn.fit(self.user_embeddings)
+
+        else:
+            self.knn.fit(self.movie_embeddings)
+
+        self.compute_neighbors()
+
+    def predict(self, users, movies):
+        self.compute_neighbors()
+
+        if self.user_based:
+            predictions = self.nearest_neighbors[tuple([users, movies])]
+        else:
+            predictions = self.nearest_neighbors[tuple([movies, users])]
+
+        nan_mask = np.isnan(predictions)
+        counter_nan = np.count_nonzero(nan_mask)
+
+        np.copyto(predictions, self.data_wrapper.movie_means[movies], where=nan_mask)  # impute nan values
+
+        if (counter_nan > 0):
+            print("** had to impute ", counter_nan, " movies **")
+
+        return predictions
+
+
+
 # [1.0008103659078311, 0.9991618105243478, 1.000329012060183, 0.9976463697503822, 0.9961922447259809]
 class KNNSVD_Biases(AlgoBase):
     """ Prediction based on dimensionality reduction through singular value decomposition """
 
-    def __init__(self, k=10, svd_epochs=10, user_based=True, metric='cosine', algorithm='auto', n_neighbors=5, track_to_comet=False,
+    def __init__(self, k=2, svd_epochs=10, user_based=True, metric='cosine', algorithm='auto', n_neighbors=5, track_to_comet=False,
                  method_name=None,
                  api_key="rISpuwcLQoWU6qan4jRCAPy5s",
                  projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
@@ -59,8 +150,8 @@ class KNNSVD_Biases(AlgoBase):
             np.copyto(nearest_neighbors_normalized, self.data_wrapper.data_matrix,
                       where=self.data_wrapper.mask.astype(bool))
 
-            self.nearest_neighbors = self.transformer.inverse_transform(nearest_neighbors_normalized)
-            #self.nearest_neighbors = nearest_neighbors_normalized
+            #self.nearest_neighbors = self.transformer.inverse_transform(nearest_neighbors_normalized)
+            self.nearest_neighbors = nearest_neighbors_normalized
 
         else:
             movie_vectors = self.movie_embeddings  # shape (10000, 1000)
@@ -80,7 +171,7 @@ class KNNSVD_Biases(AlgoBase):
 
         self.reconstructed_matrix = self.svd.reconstructed_matrix
 
-        self.reconstructed_matrix = self.transformer.fit_transform(self.reconstructed_matrix)
+        # self.reconstructed_matrix = self.transformer.fit_transform(self.reconstructed_matrix)
 
         if self.user_based:
             self.knn.fit(self.reconstructed_matrix)
@@ -126,9 +217,9 @@ class KNNSVD_Embeddings(AlgoBase):
 
         self.k = k
         self.user_based = user_based
-
+        self.transformer = MinMaxScaler(feature_range=(1,5))  # 1.0277 mean rsme
         # self.transformer = RobustScaler(with_centering=False, with_scaling=False, unit_variance=False) # 1.0277 mean rsme
-        self.transformer = PowerTransformer()
+        # self.transformer = PowerTransformer()
         print("using power transformer")
 
     def compute_neighbors(self):
