@@ -87,9 +87,10 @@ class SVD_SGD(AlgoBase):
                     reconstruction_rmse = data_processing.get_score(valid_predictions, valid_ground_truth)
                     pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss:.4f}, val_rmse {reconstruction_rmse:.4f}')
                     writer.add_scalar('val_rmse', reconstruction_rmse, epoch)
+                    rmse = reconstruction_rmse
                 else:
                     pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss}')
-        rmse = reconstruction_rmse if reconstruction_rmse is not None else rmse_loss + 1
+                    rmse = rmse_loss
         return rmse, self.epochs
 
     def predict(self, users, movies):

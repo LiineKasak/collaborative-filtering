@@ -46,6 +46,10 @@ class AlgoBase():
         """ Train / Fit the predictor """
         raise NotImplementedError("fit-function has to be implemented! ")
 
+    def tune_params(self, train_users, train_movies, train_predictions, test_users, test_movies, test_predictions):
+        """ Hyper-parameter tuning """
+        raise NotImplementedError("tune_params-function has to be implemented! ")
+
     def predict_for_submission(self, name="submission"):
         """ Predict and store the result to a kaggle-submisison file """
         # read the sample submission file to get the values we have to predict
@@ -92,5 +96,5 @@ class AlgoBase():
         print(rmses)
         return rmses
 
-    def serialize(self, filename: str):
+    def save(self, filename: str):
         pickle.dump(self, open(filename, 'wb'))

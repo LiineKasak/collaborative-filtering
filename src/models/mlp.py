@@ -21,7 +21,7 @@ class MLP(AlgoBase):
                 nn.Linear(in_features=16, out_features=4),
                 nn.ReLU(),
                 nn.Linear(in_features=4, out_features=1),
-                # nn.Sigmoid(),
+                nn.Sigmoid(),
             )
 
         def forward(self, users, movies):
@@ -33,7 +33,7 @@ class MLP(AlgoBase):
                 movies_embedding,
                 # self.bias_movies[movies].view(users.shape[0], 1),
             ], dim=1)
-            return torch.squeeze(self.mlp(concat_embedding)) #* 4 + 1
+            return torch.squeeze(self.mlp(concat_embedding)) * 4 + 1
 
     def __init__(
             self,
@@ -74,7 +74,10 @@ class MLP(AlgoBase):
         )
 
     def predict(self, users, movies):
-        return self.model(users, movies)
+        return self.model(
+            torch.tensor(users, device=self.device),
+            torch.tensor(movies, device=self.device),
+         ).detach().cpu()
 
-    def serialize(self, filename: str):
-        torch.save(self.model.state_dict(), filename)
+    def save(self, filename: str):
+        torch.save(self.model, filename)

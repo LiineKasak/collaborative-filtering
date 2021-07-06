@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from .algobase import AlgoBase
 from utils.fitting import train
+from ray import tune
 
 
 class GMF(AlgoBase):
@@ -42,16 +43,23 @@ class GMF(AlgoBase):
             device,
     ):
         super().__init__()
-        self.model = self.Model(
-            torch.tensor(user_embedding, dtype=torch.float32, device=device),
-            torch.tensor(movie_embedding, dtype=torch.float32, device=device),
-            user_bias,
-            movie_bias,
-        ).to(device)
+        self.user_embedding = user_embedding
+        self.movie_embedding = movie_embedding
+        self.user_bias = user_bias
+        self.movie_bias = movie_bias
         self.num_epochs = num_epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.device = device
+        self.model = self.make_model()
+
+    def make_model(self):
+        return self.Model(
+            torch.tensor(self.user_embedding, dtype=torch.float32, device=self.device),
+            torch.tensor(self.movie_embedding, dtype=torch.float32, device=self.device),
+            self.user_bias,
+            self.movie_bias,
+        ).to(self.device)
 
     def fit(self, train_users, train_movies, train_predictions, test_users=None, test_movies=None, test_predictions=None):
         return train(
@@ -68,11 +76,38 @@ class GMF(AlgoBase):
             batch_size=self.batch_size,
         )
 
+    def tune_params(self, train_users, train_movies, train_predictions, test_users, test_movies, test_predictions):
+        def do_train(config):
+            for i in range(5):
+                m = self.make_model()
+                rmse, epochs = train(
+                    train_users,
+                    train_movies,
+                    train_predictions,
+                    test_users,
+                    test_movies,
+                    test_predictions,
+                    device=self.device,
+                    model=m,
+                    optimizer=optim.SGD(m.parameters(), lr=config['lr']),
+                    num_epochs=self.num_epochs,
+                    batch_size=config['batch_size'],
+                )
+                tune.report(rmse=rmse)
+        return tune.run(
+            do_train,
+            mode='min',
+            config={
+                'lr': tune.grid_search([0.1, 0.01, 0.001, 0.0001]),
+                'batch_size': tune.grid_search([32, 64, 128, 256, 512]),
+            },
+        )
+
     def predict(self, users, movies):
         return self.model(
             torch.tensor(users, device=self.device),
             torch.tensor(movies, device=self.device),
         ).detach().cpu()
 
-    def serialize(self, filename: str):
-        torch.save(self.model.state_dict(), filename)
+    def save(self, filename: str):
+        torch.save(self.model, filename)

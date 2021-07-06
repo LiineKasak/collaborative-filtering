@@ -2,6 +2,7 @@ import torch
 from utils import data_processing
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
+from copy import deepcopy
 
 
 def mse_loss(predictions, target):
@@ -50,7 +51,7 @@ def train(train_users, train_movies, train_predictions, test_users, test_movies,
                     pbar.set_description(f'Epoch {epoch}: train loss {train_rmse:.4f}')
                     test_rmse = train_rmse
                 if test_rmse < best_rmse:
-                    best_state = model.state_dict()
+                    best_state = deepcopy(model.state_dict())
                     best_rmse = test_rmse
                     best_epochs = epoch + 1
     model.load_state_dict(best_state)

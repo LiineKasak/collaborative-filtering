@@ -21,6 +21,8 @@ class NCF(AlgoBase):
         super().__init__()
         self.device = device
         self.model = self.Model(gmf, mlp).to(device)
+        for p in self.model.parameters():
+            print(p)
         self.epochs = epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -43,5 +45,5 @@ class NCF(AlgoBase):
     def predict(self, users, movies):
         return self.model(users, movies)
 
-    def serialize(self, filename: str):
-        torch.save(self.model.state_dict(), filename)
+    def save(self, filename: str):
+        torch.save(self.model, filename)

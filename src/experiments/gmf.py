@@ -10,7 +10,16 @@ def parser_setup(parser: ArgumentParser):
 
 def model_factory(args, device):
     svd = pickle.load(open(args.svd, 'rb'))
-    return GMF(svd.pu, svd.qi, svd.bu, svd.bi, num_epochs=args.epochs, batch_size=128, learning_rate=args.lr, device=device)
+    return GMF(
+        svd.pu,
+        svd.qi,
+        svd.bu,
+        svd.bi,
+        num_epochs=args.epochs,
+        batch_size=args.batch_size,
+        learning_rate=args.lr,
+        device=device,
+    )
 
 
 run_experiment(
