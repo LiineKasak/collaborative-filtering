@@ -9,7 +9,20 @@ def mse_loss(predictions, target):
     return torch.mean((predictions - target) ** 2)
 
 
-def train(train_users, train_movies, train_predictions, test_users, test_movies, test_predictions, device, model, optimizer, num_epochs, batch_size):
+def train(
+        train_users,
+        train_movies,
+        train_predictions,
+        test_users,
+        test_movies,
+        test_predictions,
+        device,
+        model,
+        optimizer,
+        num_epochs,
+        batch_size,
+        verbose=True,
+):
     train_users_torch = torch.tensor(train_users, device=device)
     train_movies_torch = torch.tensor(train_movies, device=device)
     train_predictions_torch = torch.tensor(train_predictions, device=device)
@@ -30,7 +43,7 @@ def train(train_users, train_movies, train_predictions, test_users, test_movies,
     best_rmse = 100
     best_epochs = 0
     step = 0
-    with tqdm(total=len(train_dataloader) * num_epochs) as pbar:
+    with tqdm(total=len(train_dataloader) * num_epochs, disable=not verbose) as pbar:
         for epoch in range(num_epochs):
             for users_batch, movies_batch, target_predictions_batch in train_dataloader:
                 optimizer.zero_grad()
