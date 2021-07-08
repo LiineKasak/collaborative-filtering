@@ -98,7 +98,7 @@ class MLP(AlgoBase):
 
     def tune_params(self, train_users, train_movies, train_predictions, test_users, test_movies, test_predictions):
         def do_train(config):
-            for i in range(1):
+            for i in range(5):
                 m = self.make_model(config['dropout'], config['activation'])
                 rmse, epochs = train(
                     train_users,
