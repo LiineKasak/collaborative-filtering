@@ -22,7 +22,7 @@ eps = 1e-6
 class KNNImprovedSVDEmbeddings(AlgoBase):
     """ Prediction based on dimensionality reduction through singular value decomposition """
 
-    def __init__(self, epochs=10, k=5, user_based=True, metric='cosine', algorithm='auto', n_neighbors=5, track_to_comet=False,
+    def __init__(self, epochs=20, k=12, user_based=True, metric='cosine', algorithm='auto', n_neighbors=5, track_to_comet=False,
                  method_name=None,
                  api_key="rISpuwcLQoWU6qan4jRCAPy5s",
                  projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
@@ -60,6 +60,10 @@ class KNNImprovedSVDEmbeddings(AlgoBase):
                       where=self.data_wrapper.mask.astype(bool))
 
             self.nearest_neighbors = self.transformer.inverse_transform(nearest_neighbors_normalized)
+
+            user_biases_matrix = np.reshape(self.svd.bu, (self.number_of_users, 1))
+            movie_biases_matrix = np.reshape(self.svd.bi, (1, self.number_of_movies))
+            self.nearest_neighbors = self.nearest_neighbors + user_biases_matrix + movie_biases_matrix + self.svd.mu
 
 
         else:
