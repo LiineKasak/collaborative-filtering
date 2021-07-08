@@ -21,14 +21,14 @@ class DatasetWrapper:
 
     """
 
-    def __init__(self, *args):
+    def __init__(self, *args, impute='movie'):
         if len(args) == 1:
             self.data_pd = args[0]
             self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(self.data_pd)
         else:
             self.users, self.movies, self.ratings = args[0], args[1], args[2]
 
-        self.data_matrix, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings, impute=False)
+        self.data_matrix, self.mask = data_processing.get_data_mask(self, impute=impute)
 
         self.movie_dict, self.user_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
         self.triples = list(zip(self.users, self.movies, self.ratings))
@@ -44,8 +44,14 @@ class DatasetWrapper:
         self.movie_means = np.nanmean(self.data_matrix, axis=0)
         self.user_means = np.nanmean(self.data_matrix, axis=1)
 
-        self.movie_bias = np.zeros(self.movie_means.shape)     #self.movie_means - np.mean(self.movie_means)
-        self.user_bias = np.zeros(self.user_means.shape)        #self.user_means - np.mean(self.user_means)
+        self.movie_variance = np.nanvar(self.data_matrix, axis=0)
+        self.user_variance = np.nanvar(self.data_matrix, axis=1)
+
+        self.movie_bias = self.movie_means - np.mean(self.movie_means)
+        self.user_bias = self.user_means - np.mean(self.user_means)
+
+        self.times_watched = np.sum(self.mask, axis=0)
+        self.num_movies_watched = np.sum(self.mask, axis=1)
 
 
 

@@ -73,22 +73,48 @@ def read_data():
     return data_pd
 
 
-def get_data_mask(users, movies, predictions, impute=True):
+def get_data_mask(data_wrapper, impute='movie', val_users=None, val_movies=None):
     """ given input data, return a mask containing 1 if the prediction is available,
     and a data matrix containing that prediction (using mean imputation) """
-
-    if impute:
-        data = np.full((number_of_users, number_of_movies), np.mean(predictions))
-    else:
-        data = np.full((number_of_users, number_of_movies), np.nan)
+    users, movies, predictions = data_wrapper.users, data_wrapper.movies, data_wrapper.ratings
+    data = np.full((number_of_users, number_of_movies), np.nan)
     mask = np.zeros((number_of_users, number_of_movies))  # 0 -> unobserved value, 1->observed value
 
     for user, movie, pred in zip(users, movies, predictions):
         data[user][movie] = pred
         mask[user][movie] = 1
 
-    return data, mask
+    if impute == 'movie':
+        data = np.where(np.isnan(data), np.ma.array(data, mask=np.isnan(data)).mean(axis=0), data)
+        return data, mask.astype(int)
 
+    if impute == 'user':
+        data = np.where(np.isnan(data), np.ma.array(data, mask=np.isnan(data)).mean(axis=1), data)
+        return data, mask.astype(int)
+
+    elif impute == 'max':
+        data = np.where(np.isnan(data), 5, data)
+        return data, mask.astype(int)
+
+    elif impute == 'fancy' and val_users is not None:
+        print("Fancy imputation")
+        data = np.where(np.isnan(data), np.ma.array(data, mask=np.isnan(data)).mean(axis=0), data)
+        for user, movie in zip(val_users, val_movies):
+            data[user][movie] = data_wrapper.user_means[user]
+        return data, mask.astype(int)
+    else:
+        return get_data_mask(data_wrapper, impute='movie', val_users=val_users, val_movies=val_movies)
+
+    return data, mask.astype(int)
+
+
+def get_users_movies_from_file(filename='sampleSubmission.csv'):
+    """ Return the users and movies that we have to create a prediction for """
+    directory_path = get_project_directory()
+    file_pd = pd.read_csv(directory_path + '/data/' + filename)
+    users, movies, _ = extract_users_items_predictions(file_pd)
+
+    return users, movies
 
 def get_users_movies_to_predict():
     """ Return the users and movies that we have to create a prediction for """
@@ -126,6 +152,22 @@ def load_surprise_dataframe_from_pd(data_pd):
     data = Dataset.load_from_df(df[['users', 'items', 'predictions']], reader=reader)
     return data
 
+def create_validation_file(users, movies, predictions, ground_truth_predicitons, name='validation'):
+    """ predictions, create a file to submit to kaggle and store it under name.csv """
+
+    directory_path = get_project_directory()
+
+    pred_pd = pd.DataFrame(columns=['User', 'Movie','Prediction', 'GroundTruth'])
+    pred_pd['User'] = users
+    pred_pd['Movie'] = movies
+    pred_pd['Prediction'] = predictions
+    pred_pd['GroundTruth'] = ground_truth_predicitons
+
+    # export to file:
+    # archive_name is required to create working zip on my computer
+    pred_pd.to_csv(directory_path + '/data/validation_outputs/' + name + '.csv',
+                   index=False,
+                   )
 
 def create_submission_file(sub_users, sub_movies, predictions, name='submission'):
     """ predictions, create a file to submit to kaggle and store it under name.csv """
