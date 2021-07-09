@@ -110,19 +110,20 @@ class ADAPTED_SVD_SGD(AlgoBase):
 
     def read_prestored_matrices(self):
         directory_path = data_processing.get_project_directory()
-        self.pu = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/pu.csv")
-        self.qi = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/qi.csv")
-        self.bu = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/bu.csv")
-        self.bi = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/bi.csv")
+        self.pu = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/pu.csv").values[:, 1:]
+        self.qi = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/qi.csv").values[:, 1:]
+        self.bu = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/bu.csv").values[:, 1:]
+        self.bi = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/bi.csv").values[:, 1:]
 
     def fit(self, data_wrapper, valid_users=None, valid_movies=None, valid_ground_truth=None):
-        if (self.use_prestored):
-            self.read_prestored_matrices()
-            return
-
         users, movies, ground_truth = data_wrapper.users, data_wrapper.movies, data_wrapper.ratings
         self.matrix, _ = data_processing.get_data_mask(data_wrapper, impute='fancy', val_users=valid_users,
                                                        val_movies=valid_movies)
+
+        if self.use_prestored:
+            self.read_prestored_matrices()
+            return
+
         # normalized_matrix = data_processing.normalize_by_variance(self.matrix)
         # self.pu, self.qi = SVD.get_embeddings(self.k, normalized_matrix)
         self.pu, self.qi = SVD.get_embeddings(self.k, self.matrix)
@@ -179,10 +180,7 @@ class ADAPTED_SVD_SGD(AlgoBase):
             qi = pd.DataFrame(np.array(self.qi))
             pu = pd.DataFrame(np.array(self.pu))
 
-            # export to file:
             storing_directory = f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}"
-            if not os.path.exists(storing_directory):
-                os.mkdir(storing_directory)
 
             # archive_name is required to create working zip on my computer
             bu.to_csv(f"{storing_directory}/bu.csv",
@@ -214,7 +212,7 @@ class ADAPTED_SVD_SGD(AlgoBase):
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
     k = 12
-    epochs = 1
+    epochs = 75
     error = 'fancy'
 
     submit = False
@@ -222,7 +220,8 @@ if __name__ == '__main__':
     store_matrices = True
     use_precomputed = False
 
-    sgd = ADAPTED_SVD_SGD(k_singular_values=k, error=error, epochs=epochs, verbal=True, use_prestored=use_precomputed, store=store_matrices)
+    sgd = ADAPTED_SVD_SGD(k_singular_values=k, error=error, epochs=epochs, verbal=True,
+                          use_prestored=use_precomputed, store=store_matrices)
 
     if submit:
         data_wrapper = dataset.DatasetWrapper(data_pd)
@@ -230,8 +229,30 @@ if __name__ == '__main__':
         sgd.predict_for_submission(f'svd_sgd_norm_k{k}_{epochs}')
 
     elif store_matrices:
-        data_wrapper = dataset.DatasetWrapper(data_pd)
-        sgd.fit(data_wrapper, valid_movies=None, valid_users=None)
+        # export to file:
+        directory_path = data_processing.get_project_directory()
+
+        for k in [200, 500, 1000]:
+            print(f"k = {k}")
+            epochs=75
+            sgd = ADAPTED_SVD_SGD(k_singular_values=k, error=error, epochs=epochs, verbal=True,
+                                  use_prestored=use_precomputed, store=store_matrices)
+
+            storing_directory = f"{directory_path}/data/precomputed_svd_e{epochs}_k{k}"
+            if not os.path.exists(storing_directory):
+                os.mkdir(storing_directory)
+
+            train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
+
+            train_pd.to_csv(f"{storing_directory}/train_pd.csv",
+                          index=True,
+                          )
+            test_pd.to_csv(f"{storing_directory}/test_pd.csv",
+                          index=True,
+                          )
+            data_wrapper = dataset.DatasetWrapper(train_pd)
+
+            sgd.fit(data_wrapper, valid_movies=None, valid_users=None)
 
         print("done precomputing stuff")
 
