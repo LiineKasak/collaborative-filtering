@@ -10,3 +10,6 @@
 *.DS_Store
 /venv/
 **/__pycache__/*
+
+# Allow
+!data/svt_Xopt_Yk_sh100k_5000_to_5500.npy.zip
