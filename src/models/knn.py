@@ -11,12 +11,102 @@ import torch.nn as nn
 import torch.optim as optim
 import math
 from scipy.sparse import csr_matrix
-
+from src.models.adapted_svd_sgd import ADAPTED_SVD_SGD
 from utils.dataset import DatasetWrapper
 from .algobase import AlgoBase
 from models.svd_sgd import SVD_SGD
 
 eps = 1e-6
+
+
+class KNNFancyFeatures(AlgoBase):
+    def __init__(self, epochs=75, k=12, user_based=True, metric='cosine', algorithm='auto', n_neighbors=2, track_to_comet=False,
+                 method_name=None,
+                 api_key="rISpuwcLQoWU6qan4jRCAPy5s",
+                 projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
+        AlgoBase.__init__(self, track_to_comet=track_to_comet, method_name=method_name, api_key=api_key,
+                          projectname=projectname, workspace=workspace, tag=tag)
+
+        self.n_neighbors = n_neighbors
+        self.knn = NearestNeighbors(metric=metric, algorithm=algorithm, n_neighbors=n_neighbors, n_jobs=-1)
+        self.datawrapper = None
+        self.nearest_neighbors = None
+
+        self.k = k
+        self.user_based = user_based
+        self.transformer = MinMaxScaler(feature_range=(1,5))
+
+        self.svd = ADAPTED_SVD_SGD(k_singular_values=k, epochs=epochs, use_prestored=True, store=False)
+
+        print("using power transformer")
+
+    def compute_neighbors(self):
+            embeddings = self.embeddings  # shape (10000, 1000)
+            _, indices = self.knn.kneighbors(embeddings, n_neighbors=self.n_neighbors)  # shape (10000, k)
+
+
+
+
+            ratings = self.datawrapper.ratings[indices]
+
+            nearest_neighbors_normalized = np.mean(ratings, axis=1)
+            np.copyto(nearest_neighbors_normalized, self.datawrapper.data_matrix,
+                      where=self.datawrapper.mask.astype(bool))
+
+            self.nearest_neighbors = self.transformer.inverse_transform(nearest_neighbors_normalized)
+
+            # user_biases_matrix = np.reshape(self.svd.bu, (self.number_of_users, 1))
+            # movie_biases_matrix = np.reshape(self.svd.bi, (1, self.number_of_movies))
+            # self.nearest_neighbors = self.nearest_neighbors + user_biases_matrix + movie_biases_matrix + self.svd.mu
+
+
+
+    def fit(self, datawrapper):
+        self.datawrapper = datawrapper
+        users, movies = self.datawrapper.users, self.datawrapper.movies
+        self.svd.fit(datawrapper)
+        self.embeddings = self.get_features(users, movies)
+
+
+        self.knn.fit(self.embeddings)
+
+        self.compute_neighbors()
+
+    def predict(self, users, movies):
+        self.compute_neighbors()
+
+        if self.user_based:
+            predictions = self.nearest_neighbors[tuple([users, movies])]
+        else:
+            predictions = self.nearest_neighbors[tuple([movies, users])]
+
+        nan_mask = np.isnan(predictions)
+        counter_nan = np.count_nonzero(nan_mask)
+
+        np.copyto(predictions, self.data_wrapper.movie_means[movies], where=nan_mask)  # impute nan values
+
+        if (counter_nan > 0):
+            print("** had to impute ", counter_nan, " movies **")
+
+        return predictions
+
+    def get_features(self, users, movies):
+        user_features = self.svd.pu[users]
+        movie_features = self.svd.qi[movies]
+        user_means = np.reshape(self.datawrapper.user_means[users], (-1, 1))
+        movie_means = np.reshape(self.datawrapper.movie_means[movies], (-1, 1))
+        user_bias = np.reshape(self.svd.bu[users], (-1, 1))
+        movie_bias = np.reshape(self.svd.bi[movies], (-1, 1))
+
+        user_var = np.reshape(self.datawrapper.user_variance[users], (-1, 1))
+        movie_var = np.reshape(self.datawrapper.movie_variance[movies], (-1, 1))
+
+        num_movies_watched = np.reshape(self.datawrapper.num_movies_watched[users], (-1, 1))
+        times_watched = np.reshape(self.datawrapper.times_watched[movies], (-1, 1))
+
+        X = np.concatenate((user_features, movie_features, user_means, movie_means, user_bias, movie_bias, user_var,
+                            movie_var, num_movies_watched, times_watched), axis=1)
+        return X
 
 
 class KNNImprovedSVDEmbeddings(AlgoBase):
@@ -38,7 +128,7 @@ class KNNImprovedSVDEmbeddings(AlgoBase):
         self.user_based = user_based
         self.transformer = MinMaxScaler(feature_range=(1,5))
 
-        self.svd = SVD_SGD(k_singular_values=k, epochs=epochs)
+        self.svd = ADAPTED_SVD_SGD(k_singular_values=k, epochs=epochs)
 
         print("using power transformer")
 
