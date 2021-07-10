@@ -7,6 +7,8 @@ from torch.utils.tensorboard import SummaryWriter
 import time
 from tqdm import tqdm
 
+from utils import dataset
+
 EPSILON = 1e-5
 
 
@@ -32,6 +34,7 @@ class SVD_SGD(AlgoBase):
 
         self.pu = np.empty((self.number_of_users, self.k))  # user embedding
         self.qi = np.empty((self.number_of_movies, self.k))  # item embedding
+
         self.bu = np.zeros(self.number_of_users)  # user bias
         self.bi = np.zeros(self.number_of_movies)  # item bias
         self.mu = 0
@@ -42,7 +45,8 @@ class SVD_SGD(AlgoBase):
         movie_biases_matrix = np.reshape(self.bi, (1, self.number_of_movies))
         self.reconstructed_matrix = dot_product + user_biases_matrix + movie_biases_matrix + self.mu
 
-    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
+    def fit(self,data_wrapper, valid_users=None, valid_movies=None, valid_ground_truth=None):
+        users, movies, ground_truth = data_wrapper.users, data_wrapper.movies, data_wrapper.ratings
         self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
         # normalized_matrix = data_processing.normalize_by_variance(self.matrix)
         # self.pu, self.qi = SVD.get_embeddings(self.k, normalized_matrix)
@@ -59,6 +63,12 @@ class SVD_SGD(AlgoBase):
         with tqdm(total=self.epochs * len(users), disable=not self.verbal) as pbar:
             for epoch in range(self.epochs):
                 np.random.shuffle(indices)
+
+
+                users_indexed, movies_indexed = users[indices], movies[indices]
+
+
+
                 for user, movie in zip(users[indices], movies[indices]):
                     prediction = self.bu[user] + self.bi[movie] + np.dot(self.pu[user], self.qi[movie])
                     error = self.matrix[user, movie] - prediction
@@ -97,7 +107,7 @@ class SVD_SGD(AlgoBase):
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
     k = 10
-    epochs = 100
+    epochs = 2
     sgd = SVD_SGD(k_singular_values=k, epochs=epochs, verbal=True)
 
     submit = False
@@ -108,6 +118,9 @@ if __name__ == '__main__':
         sgd.predict_for_submission(f'svd_sgd_norm_k{k}_{epochs}')
     else:
         train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
+        data_wrapper = dataset.DatasetWrapper(train_pd)
         users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
         val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(test_pd)
-        sgd.fit(users, movies, predictions, val_users, val_movies, val_predictions)
+        sgd.fit(data_wrapper, val_users, val_movies, val_predictions)
+
+
