@@ -19,7 +19,7 @@ class SVD_SGD(AlgoBase):
     https://surprise.readthedocs.io/en/stable/matrix_factorization.html#matrix-factorization-based-algorithms
     """
 
-    def __init__(self, k_singular_values=17, epochs=100, learning_rate=0.001, regularization=0.05, verbal=False,
+    def __init__(self, k_singular_values=12, epochs=75, learning_rate=0.001, regularization=0.05, verbal=False,
                  track_to_comet=False):
         AlgoBase.__init__(self, track_to_comet)
 
@@ -47,7 +47,7 @@ class SVD_SGD(AlgoBase):
 
     def fit(self,data_wrapper, valid_users=None, valid_movies=None, valid_ground_truth=None):
         users, movies, ground_truth = data_wrapper.users, data_wrapper.movies, data_wrapper.ratings
-        self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
+        self.matrix, _ = data_processing.get_data_mask(data_wrapper)
         # normalized_matrix = data_processing.normalize_by_variance(self.matrix)
         # self.pu, self.qi = SVD.get_embeddings(self.k, normalized_matrix)
         self.pu, self.qi = SVD.get_embeddings(self.k, self.matrix)
@@ -106,8 +106,8 @@ class SVD_SGD(AlgoBase):
 
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
-    k = 10
-    epochs = 2
+    k = 12
+    epochs = 75
     sgd = SVD_SGD(k_singular_values=k, epochs=epochs, verbal=True)
 
     submit = False
@@ -122,5 +122,8 @@ if __name__ == '__main__':
         users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
         val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(test_pd)
         sgd.fit(data_wrapper, val_users, val_movies, val_predictions)
+
+        rsmes = sgd.cross_validate(data_pd)
+        print(np.mean(rsmes))
 
 

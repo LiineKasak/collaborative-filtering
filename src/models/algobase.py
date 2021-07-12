@@ -51,7 +51,7 @@ class AlgoBase():
         """ Train / Fit the predictor """
         raise NotImplementedError("fit-function has to be implemented! ")
 
-    def fit(self, datawrapper):
+    def fit(self, datawrapper, val_users=None, val_movies=None):
         """ Train / Fit the predictor """
         raise NotImplementedError("fit-function has to be implemented! ")
 
@@ -76,7 +76,7 @@ class AlgoBase():
 
         rmses = []
 
-        bar = tqdm(total=folds, desc='cross_validation')
+        bar = tqdm(total=folds, desc='cross_validation', disable=True)
 
         for train_index, test_index in kfold.split(data_pd):
             train_users, train_movies, train_predictions = data_processing.extract_users_items_predictions(
@@ -86,10 +86,12 @@ class AlgoBase():
             val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(
                 data_pd.iloc[test_index])
 
-            self.fit(trainset)
+            self.fit(trainset, val_users, val_movies)
 
             predictions = self.predict(val_users, val_movies)
-            rmses.append(data_processing.get_score(predictions, val_predictions))
+            rmse = data_processing.get_score(predictions, val_predictions)
+            print(f"rmse= {rmse}")
+            rmses.append(rmse)
             bar.update()
 
         bar.close()
