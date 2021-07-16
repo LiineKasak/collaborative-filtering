@@ -1,11 +1,13 @@
 import time
+import numpy as np
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from auxiliary import data_processing
-from src.algobase import AlgoBase
+from src.utils import data_processing
+from src.models.algobase import AlgoBase
+from src.models.svd_sgd import SVD_SGD
 
 
 class TorchModelTrainer(AlgoBase):
@@ -14,7 +16,7 @@ class TorchModelTrainer(AlgoBase):
         raise NotImplementedError("predict-function has to be implemented! ")
 
     def __init__(self, model_name, epochs=50, batch_size=128, re_feeding=False, learning_rate=0.001,
-                 regularization=0.01, dropout=0, logging=True):
+                 regularization=0.01, dropout=0, verbal=True):
         AlgoBase.__init__(self)
         self.model_name = model_name
         self.batch_size = batch_size
@@ -23,7 +25,7 @@ class TorchModelTrainer(AlgoBase):
         self.learning_rate = learning_rate
         self.regularization = regularization
         self.dropout = dropout
-        self.logging = logging
+        self.verbal = verbal
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = self.build_model()
@@ -34,6 +36,14 @@ class TorchModelTrainer(AlgoBase):
         self.model = self.build_model()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate,
                                           weight_decay=self.regularization)
+
+    def get_unknown(self, users, movies, ground_truth, mask):
+        unknown_users, unknown_movies = np.where(mask == 0)
+        sgd = SVD_SGD(verbal=True)
+        sgd.fit(users, movies, ground_truth)
+        unknown_predictions = sgd.predict(unknown_users, unknown_movies)
+        return unknown_users, unknown_movies, unknown_predictions
+
 
     def build_model(self):
         raise NotImplementedError("build_model-function has to be implemented! ")
@@ -59,7 +69,7 @@ class TorchModelTrainer(AlgoBase):
         writer = SummaryWriter(log_dir)
 
         step = 0
-        with tqdm(total=len(train_dataloader) * self.epochs, disable=not self.logging) as pbar:
+        with tqdm(total=len(train_dataloader) * self.epochs, disable=not self.verbal) as pbar:
             for epoch in range(self.epochs):
                 for batch in train_dataloader:
                     output, loss = self.train_step(batch)

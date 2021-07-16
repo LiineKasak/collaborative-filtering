@@ -3,8 +3,8 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
 
-from auxiliary import data_processing
-from src.autoencoder.torch_model_base import TorchModelTrainer
+from src.utils import data_processing
+from src.models.autoencoder.torch_model_base import TorchModelTrainer
 
 
 class VAEModel(torch.nn.Module):
@@ -47,9 +47,9 @@ class VAE(TorchModelTrainer):
     https://arxiv.org/abs/1312.6114
     """
 
-    def __init__(self, logging=True):
+    def __init__(self, verbal=True):
         super().__init__('auto_encoder', epochs=50, batch_size=128, learning_rate=0.001,
-                         regularization=0.001, re_feeding=False, logging=logging)
+                         regularization=0.001, re_feeding=False, verbal=verbal)
 
     def build_model(self):
         return VAEModel().to(self.device)
@@ -64,7 +64,9 @@ class VAE(TorchModelTrainer):
 
     def get_dataloader(self, data: tuple):
         users, movies, predictions = data
-        data, mask = data_processing.get_data_mask(users, movies, predictions, unknown_data_mode='mean')
+        _, mask = data_processing.get_data_mask(users, movies, predictions, unknown_data_mode='mean')
+        unknown_users, unknown_movies, unknown_predictions = self.get_unknown(users, movies, predictions, mask)
+        data, _ = data_processing.get_data_mask(users + unknown_users, movies + unknown_movies, predictions + unknown_predictions)
 
         self.data_torch = (torch.tensor(data, device=self.device).float() - 1) / 4
         self.mask_torch = torch.tensor(mask, device=self.device)

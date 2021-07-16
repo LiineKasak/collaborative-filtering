@@ -3,8 +3,8 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
 
-from auxiliary import data_processing
-from src.autoencoder.torch_model_base import TorchModelTrainer
+from src.utils import data_processing
+from src.models.autoencoder.torch_model_base import TorchModelTrainer
 
 
 class CDAEModel(torch.nn.Module):

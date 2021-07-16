@@ -1,7 +1,7 @@
-from auxiliary import data_processing
-from src.autoencoder.deep_autoencoder import DeepAutoEncoder
-from src.autoencoder.variational_autoencoder import VAE
-from src.autoencoder.collaborative_denoising_autoencoder import CDAE
+from src.utils import data_processing
+from src.models.autoencoder.deep_autoencoder import DeepAutoEncoder
+from src.models.autoencoder.variational_autoencoder import VAE
+from src.models.autoencoder.collaborative_denoising_autoencoder import CDAE
 import numpy as np
 
 data_pd = data_processing.read_data()

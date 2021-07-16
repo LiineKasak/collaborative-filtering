@@ -17,7 +17,7 @@ class SVD_SGD(AlgoBase):
     https://surprise.readthedocs.io/en/stable/matrix_factorization.html#matrix-factorization-based-algorithms
     """
 
-    def __init__(self, k_singular_values=17, epochs=100, learning_rate=0.001, regularization=0.05, verbal=False,
+    def __init__(self, k_singular_values=12, epochs=75, learning_rate=0.001, regularization=0.05, verbal=False,
                  track_to_comet=False):
         AlgoBase.__init__(self, track_to_comet)
 
