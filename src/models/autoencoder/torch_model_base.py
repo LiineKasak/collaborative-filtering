@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import pandas as pd
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
@@ -37,12 +38,9 @@ class TorchModelTrainer(AlgoBase):
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate,
                                           weight_decay=self.regularization)
 
-    def get_unknown(self, users, movies, ground_truth, mask):
-        unknown_users, unknown_movies = np.where(mask == 0)
-        sgd = SVD_SGD(verbal=True)
-        sgd.fit(users, movies, ground_truth)
-        unknown_predictions = sgd.predict(unknown_users, unknown_movies)
-        return unknown_users, unknown_movies, unknown_predictions
+    def get_unknown(self):
+        unknown_values_pd = pd.read_csv(data_processing.get_project_directory() + '\data\svd_sgd_valid_seed42.csv.zip')
+        return data_processing.extract_users_items_predictions(unknown_values_pd)
 
 
     def build_model(self):
@@ -80,10 +78,14 @@ class TorchModelTrainer(AlgoBase):
                     pbar.update(1)
                 step += 1
 
+                predictions = self.predict(train_data[0], train_data[1])
+                rmse = data_processing.get_score(predictions, train_data[2])
+                writer.add_scalar('rmse', rmse, step)
+
                 if validation_data:
                     valid_users, valid_movies, valid_predictions = validation_data
                     predictions = self.predict(valid_users, valid_movies)
                     reconstruction_rmse = data_processing.get_score(predictions, valid_predictions)
-                    pbar.set_description('At epoch {:3d} loss is {:.4f}'.format(epoch, reconstruction_rmse))
+                    pbar.set_description('Epoch {:3d}: val_loss is {:.4f}'.format(epoch, reconstruction_rmse))
 
                     writer.add_scalar('val_rmse', reconstruction_rmse, step)

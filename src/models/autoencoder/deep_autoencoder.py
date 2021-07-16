@@ -13,8 +13,6 @@ class AutoEncoderModel(torch.nn.Module):
 
         layer_dims = [1000, 16, 32, 16, 1000]
         self.layers = nn.ModuleList()
-        if dropout:
-            self.layers.append(nn.Dropout(dropout))
 
         # Encoder
         k = int(len(layer_dims) / 2)
@@ -23,6 +21,9 @@ class AutoEncoderModel(torch.nn.Module):
             self.layers.append(nn.Linear(in_features=current_dim, out_features=layer_dim))
             self.layers.append(nn.SELU())
             current_dim = layer_dim
+
+        if dropout:
+            self.layers.append(nn.Dropout(dropout))
 
         # Decoder
         for layer_dim in layer_dims[k + 1:-1]:
@@ -47,10 +48,10 @@ class DeepAutoEncoder(TorchModelTrainer):
     https://arxiv.org/pdf/1708.01715.pdf
     """
 
-    def __init__(self, logging=True):
-        self.dropout = 0.9
-        super().__init__('auto_encoder', epochs=150, batch_size=128, learning_rate=0.0001,
-                         regularization=0.01, dropout=self.dropout, re_feeding=False, logging=logging)
+    def __init__(self, epochs=150, dropout=0.9, verbal=True):
+        self.dropout = dropout
+        super().__init__('auto_encoder', epochs=epochs, batch_size=128, learning_rate=0.0001,
+                         regularization=0.01, dropout=self.dropout, re_feeding=False, verbal=verbal)
 
     def build_model(self):
         return AutoEncoderModel(self.dropout).to(self.device)
@@ -64,7 +65,10 @@ class DeepAutoEncoder(TorchModelTrainer):
 
     def get_dataloader(self, data: tuple):
         users, movies, predictions = data
-        data, mask = data_processing.get_data_mask(users, movies, predictions, unknown_data_mode='user_mean')
+        _, mask = data_processing.get_data_mask(users, movies, predictions)
+        unknown_users, unknown_movies, unknown_predictions = self.get_unknown()
+        data, _ = data_processing.get_data_mask(np.append(users, unknown_users), np.append(movies, unknown_movies),
+                                                np.append(predictions, unknown_predictions))
 
         self.data_torch = torch.tensor(data, device=self.device).float()
         self.mask_torch = torch.tensor(mask, device=self.device)

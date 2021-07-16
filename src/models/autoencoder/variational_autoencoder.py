@@ -47,8 +47,8 @@ class VAE(TorchModelTrainer):
     https://arxiv.org/abs/1312.6114
     """
 
-    def __init__(self, verbal=True):
-        super().__init__('auto_encoder', epochs=50, batch_size=128, learning_rate=0.001,
+    def __init__(self, epochs=105, verbal=True):
+        super().__init__('auto_encoder', epochs=epochs, batch_size=128, learning_rate=0.0005,
                          regularization=0.001, re_feeding=False, verbal=verbal)
 
     def build_model(self):
@@ -64,9 +64,10 @@ class VAE(TorchModelTrainer):
 
     def get_dataloader(self, data: tuple):
         users, movies, predictions = data
-        _, mask = data_processing.get_data_mask(users, movies, predictions, unknown_data_mode='mean')
-        unknown_users, unknown_movies, unknown_predictions = self.get_unknown(users, movies, predictions, mask)
-        data, _ = data_processing.get_data_mask(users + unknown_users, movies + unknown_movies, predictions + unknown_predictions)
+        _, mask = data_processing.get_data_mask(users, movies, predictions)
+        unknown_users, unknown_movies, unknown_predictions = self.get_unknown()
+        data, _ = data_processing.get_data_mask(np.append(users, unknown_users), np.append(movies, unknown_movies),
+                                                np.append(predictions, unknown_predictions))
 
         self.data_torch = (torch.tensor(data, device=self.device).float() - 1) / 4
         self.mask_torch = torch.tensor(mask, device=self.device)
