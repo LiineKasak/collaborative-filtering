@@ -1,12 +1,12 @@
 import numpy as np
-from auxiliary import data_processing
-from src.algobase import AlgoBase
+from ..utils import data_processing
+from .algobase import AlgoBase
 
 
 class SVD(AlgoBase):
     """ Prediction based on dimensionality reduction through singular value decomposition """
     def __init__(self, k_singular_values, track_to_comet=False):
-        AlgoBase.__init__(self)
+        AlgoBase.__init__(self, track_to_comet)
 
         number_of_singular_values = min(self.number_of_users, self.number_of_movies)
         assert (k_singular_values <= number_of_singular_values), "svd received invalid number of singular values (too large)"
@@ -27,3 +27,15 @@ class SVD(AlgoBase):
         predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
 
         return predictions
+
+    @staticmethod
+    def get_embeddings(k, matrix):
+        U, s, Vt = np.linalg.svd(matrix, full_matrices=False)
+
+        nr_movies = data_processing.get_number_of_movies()
+        S_sqrt = np.zeros((nr_movies, nr_movies))
+        S_sqrt[:k, :k] = np.diag(np.sqrt(s[:k]))
+
+        U_embedding = U.dot(S_sqrt)
+        Vt_embedding = S_sqrt.dot(Vt).T
+        return U_embedding[:, :k], Vt_embedding[:, :k]
