@@ -44,13 +44,10 @@ class SVD_SGD(AlgoBase):
 
     def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
         self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
-        # normalized_matrix = data_processing.normalize_by_variance(self.matrix)
-        # self.pu, self.qi = SVD.get_embeddings(self.k, normalized_matrix)
         self.pu, self.qi = SVD.get_embeddings(self.k, self.matrix)
 
         run_validation = valid_users is not None and valid_movies is not None and valid_ground_truth is not None
         indices = np.arange(len(users))
-        # global_mean = np.mean(self.matrix[np.nonzero(self.matrix)])
 
         time_string = time.strftime("%Y%m%d-%H%M%S")
         log_dir = f'./logs/SGD_{time_string}'
@@ -62,7 +59,6 @@ class SVD_SGD(AlgoBase):
                 for user, movie in zip(users[indices], movies[indices]):
                     prediction = self.bu[user] + self.bi[movie] + np.dot(self.pu[user], self.qi[movie])
                     error = self.matrix[user, movie] - prediction
-                    # bias_change = self.learning_rate * (error - self.regularization * (self.bu[user] + self.bi[movie] - global_mean))
 
                     self.bu[user] += self.learning_rate * (error - self.regularization * self.bu[user])
                     self.bi[movie] += self.learning_rate * (error - self.regularization * self.bi[movie])
