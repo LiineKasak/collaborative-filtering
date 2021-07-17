@@ -1,6 +1,7 @@
 import numpy as np
 from .algobase import AlgoBase
 from utils import data_processing
+from utils.dataset import DatasetWrapper
 from surprise import NormalPredictor
 
 
@@ -11,8 +12,10 @@ class SurpriseBaselines(AlgoBase):
         AlgoBase.__init__(self, track_to_comet=track_to_comet, method_name=predictor.__name__ + "_surprise")
         self.predictor = NormalPredictor()     # random predictor; will be overwritten by the init function
 
-    def fit(self, users, movies, predictions):
-        trainset = data_processing.load_surprise_dataframe_from_arrays(users, movies, predictions).build_full_trainset()
+    def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
+        trainset = data_processing\
+            .load_surprise_dataframe_from_arrays(train_data.users, train_data.movies, train_data.ratings)\
+            .build_full_trainset()
         self.predictor.fit(trainset)
 
     def predict(self, users, movies):

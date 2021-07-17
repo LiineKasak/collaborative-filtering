@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.model_selection import KFold
 from tqdm import tqdm
 from comet_ml import Experiment
+from utils.dataset import DatasetWrapper
 import pickle
 
 from src.utils import data_processing
@@ -42,11 +43,11 @@ class AlgoBase():
         """ Predict ratings for a given set of users and movies """
         raise NotImplementedError("predict-function has to be implemented! ")
 
-    def fit(self, train_users, train_movies, train_predictions, test_users=None, test_movies=None, test_predictions=None):
+    def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         """ Train / Fit the predictor """
         raise NotImplementedError("fit-function has to be implemented! ")
 
-    def tune_params(self, train_users, train_movies, train_predictions, test_users, test_movies, test_predictions):
+    def tune_params(self, train_data: DatasetWrapper, test_data: DatasetWrapper):
         """ Hyper-parameter tuning """
         raise NotImplementedError("tune_params-function has to be implemented! ")
 

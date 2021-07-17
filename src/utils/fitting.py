@@ -1,6 +1,6 @@
 import torch
 from utils import data_processing
-from torch.utils.data import DataLoader, TensorDataset
+from utils.dataset import DatasetWrapper
 from tqdm import tqdm
 from copy import deepcopy
 
@@ -10,12 +10,8 @@ def mse_loss(predictions, target):
 
 
 def train(
-        train_users,
-        train_movies,
-        train_predictions,
-        test_users,
-        test_movies,
-        test_predictions,
+        train_data: DatasetWrapper,
+        test_data: DatasetWrapper,
         device,
         model,
         optimizer,
@@ -23,21 +19,14 @@ def train(
         batch_size,
         verbose=True,
 ):
-    train_users_torch = torch.tensor(train_users, device=device)
-    train_movies_torch = torch.tensor(train_movies, device=device)
-    train_predictions_torch = torch.tensor(train_predictions, device=device)
+    train_users_torch = torch.tensor(train_data.users, device=device)
+    train_movies_torch = torch.tensor(train_data.movies, device=device)
 
-    if test_users is None:
-        do_validate = False
-    else:
-        do_validate = True
-        test_users_torch = torch.tensor(test_users, device=device)
-        test_movies_torch = torch.tensor(test_movies, device=device)
+    if test_data:
+        test_users_torch = torch.tensor(test_data.users, device=device)
+        test_movies_torch = torch.tensor(test_data.movies, device=device)
 
-    train_dataloader = DataLoader(
-        TensorDataset(train_users_torch, train_movies_torch, train_predictions_torch),
-        batch_size=batch_size,
-    )
+    train_dataloader = train_data.create_dataloader(batch_size, device)
 
     best_state = None
     best_rmse = 100
@@ -55,10 +44,10 @@ def train(
                 step += 1
             with torch.no_grad():
                 train_score_hat = model(train_users_torch, train_movies_torch)
-                train_rmse = data_processing.get_score(train_score_hat.cpu().numpy(), train_predictions)
-                if do_validate:
+                train_rmse = data_processing.get_score(train_score_hat.cpu().numpy(), train_data.ratings)
+                if test_data:
                     test_score_hat = model(test_users_torch, test_movies_torch)
-                    test_rmse = data_processing.get_score(test_score_hat.cpu().numpy(), test_predictions)
+                    test_rmse = data_processing.get_score(test_score_hat.cpu().numpy(), test_data.ratings)
                     pbar.set_description(f'Epoch {epoch}: train loss {train_rmse:.4f}, test loss {test_rmse:.4f}')
                 else:
                     pbar.set_description(f'Epoch {epoch}: train loss {train_rmse:.4f}')

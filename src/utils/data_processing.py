@@ -8,6 +8,7 @@ from sklearn.metrics import mean_squared_error
 from pathlib import Path
 import os
 from surprise import Dataset, Reader
+from tqdm import tqdm
 
 number_of_users, number_of_movies = (10000, 1000)
 

@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from .algobase import AlgoBase
 from utils.fitting import train
+from utils.dataset import DatasetWrapper
 
 
 class NCF(AlgoBase):
@@ -21,23 +22,17 @@ class NCF(AlgoBase):
         super().__init__()
         self.device = device
         self.model = self.Model(gmf, mlp).to(device)
-        for p in self.model.parameters():
-            print(p)
         self.epochs = epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
 
-    def fit(self, train_users, train_movies, train_predictions, test_users=None, test_movies=None, test_predictions=None):
+    def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         return train(
-            train_users,
-            train_movies,
-            train_predictions,
-            test_users,
-            test_movies,
-            test_predictions,
+            train_data,
+            test_data,
             device=self.device,
             model=self.model,
-            optimizer=optim.SGD(self.model.parameters(), lr=self.learning_rate),
+            optimizer=optim.SGD(self.model.parameters(), lr=self.learning_rate, weight_decay=1),
             num_epochs=self.epochs,
             batch_size=self.batch_size,
         )
@@ -47,3 +42,31 @@ class NCF(AlgoBase):
 
     def save(self, filename: str):
         torch.save(self.model, filename)
+
+
+if __name__ == '__main__':
+    from argparse import ArgumentParser
+    from utils.experiment import run_experiment
+    import torch
+
+
+    def parser_setup(parser: ArgumentParser):
+        parser.add_argument('--gmf', type=str, help='GMF state dict')
+        parser.add_argument('--mlp', type=str, help='MLP state dict')
+
+
+    def model_factory(args, device):
+        gmf = torch.load(args.gmf)
+        gmf.eval()
+
+        mlp = torch.load(args.mlp)
+        mlp.eval()
+
+        return NCF(gmf, mlp, device, epochs=args.epochs, batch_size=128, learning_rate=args.lr)
+
+
+    run_experiment(
+        'NCF',
+        parser_setup,
+        model_factory,
+    )

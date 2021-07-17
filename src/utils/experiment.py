@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from models.algobase import AlgoBase
 from utils import data_processing
+from utils.dataset import DatasetWrapper
 from sklearn.model_selection import train_test_split
 from typing import Callable, Any
 import torch
@@ -41,38 +42,18 @@ def run_experiment(
     if args.crossval:
         model.cross_validate(data_pd)
     else:
-        users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
         if args.validate or args.tune:
-            train_users, test_users, train_movies, test_movies, train_predictions, test_predictions = train_test_split(
-                users,
-                movies,
-                predictions,
-                train_size=0.9,
-                random_state=42
-            )
+            train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
+            train_data, test_data = DatasetWrapper(train_pd), DatasetWrapper(test_pd)
         else:
-            train_users, train_movies, train_predictions = users, movies, predictions
-            test_users, test_movies, test_predictions = None, None, None
+            train_data = DatasetWrapper(data_pd)
+            test_data = None
 
         if args.tune:
-            analysis = model.tune_params(
-                train_users,
-                train_movies,
-                train_predictions,
-                test_users,
-                test_movies,
-                test_predictions,
-            )
+            analysis = model.tune_params(train_data, test_data)
             print("Best config: ", analysis.get_best_config(metric="rmse"))
         else:
-            rmse, epochs = model.fit(
-                train_users,
-                train_movies,
-                train_predictions,
-                test_users,
-                test_movies,
-                test_predictions,
-            )
+            rmse, epochs = model.fit(train_data, test_data)
             print(f'Best RMSE {rmse} after {epochs} epochs.')
 
     if args.output:

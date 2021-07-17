@@ -1,4 +1,4 @@
-import data_processing
+from utils import data_processing
 import pandas as pd
 from surprise import Dataset, Reader
 import torch

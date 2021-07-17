@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from utils import data_processing
+from utils.dataset import DatasetWrapper
 from models.algobase import AlgoBase
 from models.svd import SVD
 from torch.utils.tensorboard import SummaryWriter
@@ -54,7 +55,10 @@ class SVT_SVD(AlgoBase):
         movie_biases_matrix = np.reshape(self.bi, (1, self.number_of_movies))
         self.reconstructed_matrix = dot_product + user_biases_matrix + movie_biases_matrix + self.mu
 
-    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
+    def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
+        users = train_data.users
+        movies = train_data.movies
+        ground_truth = train_data.ratings
 
         with open(self.directory_path + '/data/svt_Xopt_Yk_sh100k_5000_to_5500.npy', 'rb') as f:
             self.matrix = np.load(f, allow_pickle=True)
@@ -62,7 +66,7 @@ class SVT_SVD(AlgoBase):
         
         self.pu, self.qi = SVD.get_embeddings(self.k, self.matrix)
 
-        run_validation = valid_users is not None and valid_movies is not None and valid_ground_truth is not None
+        run_validation = test_data is not None
         indices = np.arange(len(users))
         # global_mean = np.mean(self.matrix[np.nonzero(self.matrix)])
 
@@ -91,8 +95,8 @@ class SVT_SVD(AlgoBase):
                 writer.add_scalar('rmse', rmse_loss, epoch)
 
                 if run_validation:
-                    valid_predictions = self.predict(valid_users, valid_movies)
-                    reconstruction_rmse = data_processing.get_score(valid_predictions, valid_ground_truth)
+                    valid_predictions = self.predict(test_data.users, test_data.movies)
+                    reconstruction_rmse = data_processing.get_score(valid_predictions, test_data.ratings)
                     pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss:.4f}, val_rmse {reconstruction_rmse:.4f}')
                     writer.add_scalar('val_rmse', reconstruction_rmse, epoch)
                 else:
@@ -115,11 +119,11 @@ if __name__ == '__main__':
     sgd = SVT_SVD(k_singular_values=k, epochs=epochs, verbal=True, submit=submit)
 
     if submit:
-        users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
-        sgd.fit(users, movies, predictions)
+        data = DatasetWrapper(data_pd)
+        sgd.fit(data)
         sgd.predict_for_submission(f'svd_sgd_norm_k{k}_{epochs}')
     else:
         train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
+        train_data, test_data = DatasetWrapper(train_pd), DatasetWrapper(test_pd)
         users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
-        val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(test_pd)
-        sgd.fit(users, movies, predictions, val_users, val_movies, val_predictions)
+        sgd.fit(train_data, test_data)
