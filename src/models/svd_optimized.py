@@ -8,14 +8,12 @@ import time
 from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.pyplot as plt
 
 
 class SVD_optimized(AlgoBase):
-    """
-    Running optimizers on SVD initialized embeddings.
-    """
 
-    def __init__(self, k_singular_values=17, epochs=100, batch_size=128, learning_rate=0.   001, regularization=0.005,
+    def __init__(self, k_singular_values=17, epochs=100, batch_size=128, learning_rate=0.0001, regularization=0.005,
                  verbal=False,
                  track_to_comet=False, optimizer='SGD'):
         AlgoBase.__init__(self, track_to_comet)
@@ -41,7 +39,6 @@ class SVD_optimized(AlgoBase):
 
     @staticmethod
     def _rmse(predictions, target_values):
-        # for torch tensors
         return torch.sqrt(torch.mean(predictions - target_values) ** 2)
 
     def _optimizer(self):
@@ -56,10 +53,10 @@ class SVD_optimized(AlgoBase):
                                     weight_decay=self.regularization)
 
     def _update_reconstructed_matrix(self):
-        pu = self.pu.detach().cpu().numpy()
-        qi = self.qi.detach().cpu().numpy()
-        bu = self.bu.detach().cpu().numpy()
-        bi = self.bi.detach().cpu().numpy()
+        pu = self.pu.clone().detach().cpu().numpy()
+        qi = self.qi.clone().detach().cpu().numpy()
+        bu = self.bu.clone().detach().cpu().numpy()
+        bi = self.bi.clone().detach().cpu().numpy()
         dot_product = pu.dot(qi.T)
         user_biases_matrix = np.reshape(bu, (self.number_of_users, 1))
         movie_biases_matrix = np.reshape(bi, (1, self.number_of_movies))
@@ -129,7 +126,7 @@ class SVD_optimized(AlgoBase):
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
     k = 10
-    epochs = 70
+    epochs = 10
     sgd = SVD_optimized(k_singular_values=k, epochs=epochs, verbal=True, optimizer='SGD')
 
     submit = False
