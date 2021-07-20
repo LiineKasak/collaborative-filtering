@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 class SVD_optimized(AlgoBase):
 
-    def __init__(self, k_singular_values=17, epochs=100, batch_size=128, learning_rate=0.0001, regularization=0.005,
+    def __init__(self, k_singular_values=17, epochs=100, batch_size=1, learning_rate=0.001, regularization=0.05,
                  verbal=False,
                  track_to_comet=False, optimizer='SGD'):
         AlgoBase.__init__(self, track_to_comet)
@@ -29,7 +29,8 @@ class SVD_optimized(AlgoBase):
         self.matrix = np.zeros((self.number_of_users, self.number_of_movies))
         self.reconstructed_matrix = torch.zeros(self.number_of_users, self.number_of_movies)
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cpu')
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using device {self.device}.')
         self.pu = torch.zeros(self.number_of_users, self.k, requires_grad=True, device=self.device)  # user embedding
         self.qi = torch.zeros(self.number_of_movies, self.k, requires_grad=True, device=self.device)  # item embedding
@@ -39,7 +40,8 @@ class SVD_optimized(AlgoBase):
 
     @staticmethod
     def _rmse(predictions, target_values):
-        return torch.sqrt(torch.mean(predictions - target_values) ** 2)
+        # return torch.mean(predictions - target_values) ** 2
+        return (predictions - target_values) ** 2
 
     def _optimizer(self):
         if self.optimizer == 'SGD':
@@ -85,16 +87,17 @@ class SVD_optimized(AlgoBase):
         step = 0
         with tqdm(total=self.epochs * len(train_dataloader), disable=not self.verbal) as pbar:
             for epoch in range(self.epochs):
-                for users_batch, movies_batch, truth_batch in train_dataloader:
+                indices = torch.randperm(len(users))
+                for user, movie in zip(users[indices], movies[indices]):
+                # for users_batch, movies_batch, truth_batch in train_dataloader:
                     optimizer.zero_grad()
-                    predictions = self._predict(users_batch, movies_batch)
-                    loss = self._rmse(predictions, truth_batch)
-                    writer.add_scalar('loss', loss.detach().cpu().numpy(), step)
+                    predictions = self._predict(user, movie)
+                    loss = self._rmse(predictions, self.matrix[user, movie])
+                    # writer.add_scalar('loss', loss.detach().cpu().numpy(), step)
                     step += 1
 
                     loss.backward()
-                    with torch.no_grad():
-                        optimizer.step()
+                    optimizer.step()
 
                     pbar.update(1)
 
@@ -114,7 +117,8 @@ class SVD_optimized(AlgoBase):
                     pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss}')
 
     def _predict(self, users, movies):
-        return torch.diagonal(self.bu[users] + self.bi[movies] + torch.mm(self.pu[users], self.qi[movies].T))
+        # return self.bu[users] + self.bi[movies] + torch.bmm(self.pu[users].view(len(users), 1, self.pu.shape[1]), self.qi[movies].view(len(movies), self.qi.shape[1], 1))
+        return self.bu[users] + self.bi[movies] + torch.dot(self.pu[users], self.qi[movies])
 
     def predict(self, users, movies):
         predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
@@ -125,8 +129,8 @@ class SVD_optimized(AlgoBase):
 
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
-    k = 10
-    epochs = 10
+    k = 17
+    epochs = 75
     sgd = SVD_optimized(k_singular_values=k, epochs=epochs, verbal=True, optimizer='SGD')
 
     submit = False
