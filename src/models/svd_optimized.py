@@ -15,7 +15,7 @@ class SVD_optimized(AlgoBase):
     Running optimizers on SVD initialized embeddings.
     """
 
-    def __init__(self, k_singular_values=17, epochs=100, batch_size=64, learning_rate=0.001, regularization=0.05,
+    def __init__(self, k_singular_values=17, epochs=100, batch_size=128, learning_rate=0.   001, regularization=0.005,
                  verbal=False,
                  track_to_comet=False, optimizer='SGD'):
         AlgoBase.__init__(self, track_to_comet)
@@ -29,7 +29,7 @@ class SVD_optimized(AlgoBase):
         self.optimizer = optimizer
 
         self.matrix = np.zeros((self.number_of_users, self.number_of_movies))
-        self.reconstructed_matrix = np.zeros((self.number_of_users, self.number_of_movies))
+        self.reconstructed_matrix = torch.zeros(self.number_of_users, self.number_of_movies)
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using device {self.device}.')
@@ -73,39 +73,40 @@ class SVD_optimized(AlgoBase):
         self._update_reconstructed_matrix()
 
         run_validation = valid_users is not None and valid_movies is not None and valid_ground_truth is not None
-        indices = np.arange(len(users))
 
-        users = torch.tensor(users, device=self.device)
-        movies = torch.tensor(movies, device=self.device)
-        ground_truth = torch.tensor(ground_truth, device=self.device)
-        train_dataloader = DataLoader(TensorDataset(users, movies, ground_truth), batch_size=self.batch_size)
+        users_tensor = torch.tensor(users, device=self.device).long()
+        movies_tensor = torch.tensor(movies, device=self.device).long()
+        ground_truth_tensor = torch.tensor(ground_truth, device=self.device).long()
+        train_dataloader = DataLoader(TensorDataset(users_tensor, movies_tensor, ground_truth_tensor),
+                                      batch_size=self.batch_size)
 
         time_string = time.strftime("%Y%m%d-%H%M%S")
         log_dir = f'./logs/SGD_{time_string}'
         writer = SummaryWriter(log_dir)
 
         optimizer = self._optimizer()
-
+        step = 0
         with tqdm(total=self.epochs * len(train_dataloader), disable=not self.verbal) as pbar:
             for epoch in range(self.epochs):
-                np.random.shuffle(indices)
-                # print(self.pu.detach().cpu().numpy())
                 for users_batch, movies_batch, truth_batch in train_dataloader:
-                    predictions = torch.tensor(self.predict(users_batch, movies_batch), device=self.device)
-                    loss = self._rmse(predictions, truth_batch).requires_grad_(True)
+                    optimizer.zero_grad()
+                    predictions = self._predict(users_batch, movies_batch)
+                    loss = self._rmse(predictions, truth_batch)
+                    writer.add_scalar('loss', loss.detach().cpu().numpy(), step)
+                    step += 1
 
                     loss.backward()
-                    optimizer.step()
-                    optimizer.zero_grad()
+                    with torch.no_grad():
+                        optimizer.step()
 
-                    self._update_reconstructed_matrix()
                     pbar.update(1)
 
-                rmse_loss = torch.tensor(data_processing.get_score(predictions, ground_truth), requires_grad=True,
-                                         device=self.device)
-
-                writer.add_scalar('rmse', rmse_loss, epoch)
                 self._update_reconstructed_matrix()
+                # -- comment out if no logging of train rmse --
+                predictions = self.predict(users, movies)
+                rmse_loss = data_processing.get_score(predictions, ground_truth)
+                writer.add_scalar('rmse', rmse_loss, epoch)
+                # --
 
                 if run_validation:
                     valid_predictions = self.predict(valid_users, valid_movies)
@@ -115,21 +116,21 @@ class SVD_optimized(AlgoBase):
                 else:
                     pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss}')
 
+    def _predict(self, users, movies):
+        return torch.diagonal(self.bu[users] + self.bi[movies] + torch.mm(self.pu[users], self.qi[movies].T))
+
     def predict(self, users, movies):
-        with torch.no_grad():
-            users = users.detach().cpu().numpy()
-            movies = movies.detach().cpu().numpy()
-            predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
-            predictions[predictions > 5] = 5
-            predictions[predictions < 1] = 1
-            return predictions
+        predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
+        predictions[predictions > 5] = 5
+        predictions[predictions < 1] = 1
+        return predictions
 
 
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
     k = 10
-    epochs = 1
-    sgd = SVD_optimized(k_singular_values=k, epochs=epochs, verbal=True, optimizer='Adam')
+    epochs = 70
+    sgd = SVD_optimized(k_singular_values=k, epochs=epochs, verbal=True, optimizer='SGD')
 
     submit = False
 
