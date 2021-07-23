@@ -1,5 +1,5 @@
 from utils import data_processing
-from models import svd
+from models import matrix_factorization
 """ 
     Example file to show how to use the AlgoBase functions 
     First, run: 
@@ -16,7 +16,7 @@ from models import svd
 # Read the data from the file:
 data_pd = data_processing.read_data()
 
-svd = svd.SVD(k_singular_values=2)
+svd = matrix_factorization.SVD(k_singular_values=2)
 
 # cross_validation, can also set number of folds (default is 5), and randomstate (default is 42)
 rmses = svd.cross_validate(data_pd)
