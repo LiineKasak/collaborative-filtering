@@ -31,37 +31,9 @@ class svdInputClassifier(AlgoBase):
         self.user_embeddings, self.movie_embeddings = None, None
 
         if clf is None:
-            # self.clf = MLPClassifier(hidden_layer_sizes=(100, 100),
-            #                          activation='relu',
-            #                          solver='adam',
-            #                          alpha=0.0001,
-            #                          batch_size='auto',
-            #                          # learning_rate='constant',    # only used with sgd
-            #                          learning_rate_init=0.001,
-            #                          # power_t=0.5,                  # only used if learning_rate='invscaling'
-            #                          max_iter=200,
-            #                          shuffle=True,
-            #                          random_state=42,
-            #                          tol=0.0001,
-            #                          verbose=True,
-            #                          warm_start=False,
-            #                          momentum=0.9,
-            #                          # nesterovs_momentum=True,  # only with sgd
-            #                          early_stopping=True,
-            #                          validation_fraction=0.1,
-            #                          beta_1=0.9,
-            #                          beta_2=0.999,
-            #                          epsilon=1e-08,
-            #                          n_iter_no_change=10,
-            #                          max_fun=15000)
-            self.clf = KNeighborsClassifier(n_neighbors=5,
-                                            weights='uniform',
-                                            algorithm='auto',
-                                            leaf_size=30,
-                                            p=2,
-                                            metric='minkowski',
-                                            metric_params=None,
-                                            n_jobs=-1)
+            self.clf = HistGradientBoostingClassifier(scoring='neg_root_mean_squared_error', l2_regularization=1e-3,
+                                                      verbose=1, max_iter=150)
+
 
             # self.clf = AdaBoostClassifier() # sucks
 
