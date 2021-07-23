@@ -54,16 +54,16 @@ class svdInputClassifier(AlgoBase):
             #                          epsilon=1e-08,
             #                          n_iter_no_change=10,
             #                          max_fun=15000)
-            self.clf = KNeighborsClassifier(n_neighbors=5,
-                                            weights='uniform',
-                                            algorithm='auto',
-                                            leaf_size=30,
-                                            p=2,
-                                            metric='minkowski',
-                                            metric_params=None,
-                                            n_jobs=-1)
+            # self.clf = KNeighborsClassifier(n_neighbors=5,
+            #                                 weights='uniform',
+            #                                 algorithm='auto',
+            #                                 leaf_size=30,
+            #                                 p=2,
+            #                                 metric='minkowski',
+            #                                 metric_params=None,
+            #                                 n_jobs=-1)
 
-            # self.clf = AdaBoostClassifier() # sucks
+            self.clf = HistGradientBoostingClassifier(scoring='neg_root_mean_squared_error', l2_regularization=1e-3, verbose=1, max_iter=150)
 
         else:
             self.clf = clf
