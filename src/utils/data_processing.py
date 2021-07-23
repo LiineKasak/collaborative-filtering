@@ -73,6 +73,22 @@ def read_data():
     return data_pd
 
 
+def get_data_mask_from_raw(users, movies, predictions, num_users=number_of_users, num_movies=number_of_movies):
+    """ given input data, return a mask containing 1 if the prediction is available,
+    and a data matrix containing that prediction (using mean imputation) """
+    data = np.full((num_users, num_movies), np.nan)
+    mask = np.zeros((num_users, num_movies))  # 0 -> unobserved value, 1->observed value
+
+    for user, movie, pred in zip(users, movies, predictions):
+        data[user][movie] = pred
+        mask[user][movie] = 1
+
+    data = np.where(np.isnan(data), np.ma.array(data, mask=np.isnan(data)).mean(axis=0), data)
+
+
+
+    return data, mask.astype(int)
+
 def get_data_mask(data_wrapper, impute='movie', val_users=None, val_movies=None):
     """ given input data, return a mask containing 1 if the prediction is available,
     and a data matrix containing that prediction (using mean imputation) """

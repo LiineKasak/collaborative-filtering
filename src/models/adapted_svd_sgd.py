@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from scipy.stats import pearsonr
 from sklearn.model_selection import train_test_split
 from src.utils import data_processing
 from src.models.algobase import AlgoBase
@@ -32,11 +33,11 @@ class ADAPTED_SVD_SGD(AlgoBase):
         self.epochs = epochs
         # self.learning_rate = learning_rate
         self.learning_rate = {
-            1: 0.002,
-            2: 0.002,
+            1: 0.001,
+            2: 0.001,
             3: 0.001,
             4: 0.001,
-            5: 0.002
+            5: 0.001
         }
         self.regularization = regularization
         self.verbal = verbal
@@ -88,6 +89,84 @@ class ADAPTED_SVD_SGD(AlgoBase):
     def standard_error(self, actual, output):
         return (actual - output), 1
 
+    def get_pearson_similarities(self, datawrapper):
+        directory_path = data_processing.get_project_directory()
+        file = f"{directory_path}/data/precompute/pearson_matrix.csv"
+        if not os.path.exists(file):
+            self.sim = np.zeros((datawrapper.num_users, datawrapper.num_users))
+            with tqdm(total=datawrapper.num_users * datawrapper.num_users, disable=False,
+                      desc="computing pearson matrix") as pbar:
+
+                for u in range(datawrapper.num_users):
+                    for v in range(datawrapper.num_users):
+                        self.sim[u, v], _ = pearsonr(self.pu[u], self.pu[v])
+                        pbar.update()
+
+            df = pd.DataFrame(self.sim)
+            df.to_csv(file)
+
+            # df = pd.DataFrame(self.pearson_matrix)
+            # directory_path = data_processing.get_project_directory()
+            # storing_directory = f"{directory_path}/data/precompute"
+            # if not os.path.exists(storing_directory):
+            #     os.mkdir(storing_directory)
+            # df.to_csv(f"{storing_directory}/pearson_matrix.csv",
+            #           index=True,
+            #           )
+            return self.sim
+
+        else:
+            df = pd.read_csv(file)
+            self.sim = np.array(df)[:, 1:]
+
+    def get_similarity_terms(self, datawrapper):
+        directory_path = data_processing.get_project_directory()
+        file = f"{directory_path}/data/precompute/similarity_measure_complete.csv"
+        self.get_pearson_similarities(datawrapper)
+        similarity_terms_matrix = np.zeros((data_processing.number_of_users, data_processing.number_of_movies))
+        # return similarity_terms_matrix
+        if not os.path.exists(file):
+            similarity_terms_matrix = np.zeros((data_processing.number_of_users, data_processing.number_of_movies))
+
+            with tqdm(total=data_processing.number_of_movies, disable=False, desc="computing similarity terms") as pbar:
+
+                # for user in range(data_processing.number_of_users):
+                #     for movie in range(data_processing.number_of_movies):
+                #         neighbours = datawrapper.movie_dict[movie]
+                #         similarity_term = 0
+                #         normalization_term = 0
+                #
+                #         for v, rvi in neighbours:
+                #             bvi = (self.bu[v] + self.bi[movie])
+                #             sim_uv = self.sim[user, v]
+                #             similarity_term += sim_uv * (rvi - bvi)
+                #             normalization_term += sim_uv
+                #
+                #         similarity_term = similarity_term / normalization_term
+                #         similarity_terms_matrix[user, movie] = similarity_term
+                #         pbar.update()
+                for movie in range(data_processing.number_of_movies):
+                    neighbours = datawrapper.movie_dict[movie]
+                    users, ratings = np.array(list(zip(*neighbours))[0]), np.array(list(zip(*neighbours))[1])
+                    bvi = (self.bu[users] + self.bi[movie])
+                    rvi = ratings
+                    sim_uv = self.sim[users, users]
+
+                    similarity_term = np.nansum(sim_uv * (rvi - bvi))
+                    normalization_term = np.nansum(sim_uv)
+
+                    similarity_terms_matrix[users, movie] = similarity_term / normalization_term
+                    pbar.update()
+
+            df = pd.DataFrame(similarity_terms_matrix)
+            df.to_csv(file)
+            return similarity_terms_matrix
+
+        else:
+            df = pd.read_csv(file)
+
+            return np.array(df)[:, 1:]
+
     def fancy_error(self, actual, output):
         # weights = {
         #     1: 2,
@@ -115,14 +194,16 @@ class ADAPTED_SVD_SGD(AlgoBase):
         self.bu = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/bu.csv")
         self.bi = pd.read_csv(f"{directory_path}/data/precomputed_svd_e{self.epochs}_k{self.k}/bi.csv")
 
-    def fit(self, data_wrapper, valid_users=None, valid_movies=None, valid_ground_truth=None):
-        if (self.use_prestored):
+    def fit(self, datawrapper, valid_users=None, valid_movies=None, valid_ground_truth=None):
+        if self.use_prestored:
             self.read_prestored_matrices()
             return
 
         users, movies, ground_truth = data_wrapper.users, data_wrapper.movies, data_wrapper.ratings
         self.matrix, _ = data_processing.get_data_mask(data_wrapper, impute='fancy', val_users=valid_users,
                                                        val_movies=valid_movies)
+        similarity_terms = self.get_similarity_terms(datawrapper)
+
         # normalized_matrix = data_processing.normalize_by_variance(self.matrix)
         # self.pu, self.qi = SVD.get_embeddings(self.k, normalized_matrix)
         self.pu, self.qi = SVD.get_embeddings(self.k, self.matrix)
@@ -139,11 +220,11 @@ class ADAPTED_SVD_SGD(AlgoBase):
             for epoch in range(self.epochs):
                 np.random.shuffle(indices)
 
-                users_indexed, movies_indexed = users[indices], movies[indices]
-
                 weights = 0
                 for user, movie in zip(users[indices], movies[indices]):
-                    prediction = self.bu[user] + self.bi[movie] + np.dot(self.pu[user], self.qi[movie])
+                    similarity_term = similarity_terms[user, movie]
+
+                    prediction = self.bu[user] + self.bi[movie] + similarity_term + np.dot(self.pu[user], self.qi[movie])
                     error, w = self.error(self.matrix[user, movie], prediction)
                     # bias_change = self.learning_rate * (error - self.regularization * (self.bu[user] + self.bi[movie] - global_mean))
 
@@ -214,12 +295,12 @@ class ADAPTED_SVD_SGD(AlgoBase):
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
     k = 12
-    epochs = 1
+    epochs = 75
     error = 'fancy'
 
     submit = False
     train_val = True
-    store_matrices = True
+    store_matrices = False
     use_precomputed = False
 
     sgd = ADAPTED_SVD_SGD(k_singular_values=k, error=error, epochs=epochs, verbal=True, use_prestored=use_precomputed, store=store_matrices)
