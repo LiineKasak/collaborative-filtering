@@ -13,7 +13,7 @@ from models.classifiers import svdInputClassifier
 knn = KNNImprovedSVDEmbeddings()
 log_regression = svdInputClassifier()
 
-approaches = [log_regression]
+approaches = [knn, log_regression]
 
 
 # -------------
