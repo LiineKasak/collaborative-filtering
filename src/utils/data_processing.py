@@ -1,5 +1,7 @@
 """ Mostly functions adapted from the ones in the jupyter notebook provided by the course """
 import math
+from collections import defaultdict
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -71,32 +73,20 @@ def read_data():
     return data_pd
 
 
-def get_data_mask(users, movies, predictions, unknown_data_mode='mean'):
+def get_data_mask(users, movies, predictions, impute=True):
     """ given input data, return a mask containing 1 if the prediction is available,
     and a data matrix containing that prediction (using mean imputation) """
 
-    shape = (number_of_users, number_of_movies)
-    data = np.empty(shape)
-    data[:] = np.nan
-    mask = np.zeros(shape)  # 0 -> unobserved value, 1-> observed value
+    if impute:
+        data = np.full((number_of_users, number_of_movies), np.mean(predictions))
+    else:
+        data = np.full((number_of_users, number_of_movies), np.nan)
+    mask = np.zeros((number_of_users, number_of_movies))  # 0 -> unobserved value, 1->observed value
 
     for user, movie, pred in zip(users, movies, predictions):
         data[user][movie] = pred
         mask[user][movie] = 1
 
-    if unknown_data_mode == 'user_mean':
-        row_mean = np.nanmean(data, axis=1)
-        indices = np.where(np.isnan(data))
-        data[indices] = np.take(row_mean, indices[0])
-    else:
-        default_value = None
-        if unknown_data_mode == 'zero':
-            default_value = 0
-        elif unknown_data_mode == 'mean':
-            default_value = np.mean(predictions)
-
-        if default_value:
-            data[np.isnan(data)] = default_value
     return data, mask
 
 
@@ -157,3 +147,15 @@ def create_submission_file(sub_users, sub_movies, predictions, name='submission'
 
     # submit from terminal:
     # !kaggle competitions submit cil-collaborative-filtering-2021 -f ./data/submissions/name.csv.zip -m '<message>'
+
+
+def create_dicts(users, movies, ratings):
+    movies_ratings_dict = defaultdict(list)
+    users_ratings_dict = defaultdict(list)
+
+    for i in range(len(users)):
+        user, movie, rating = users[i], movies[i], ratings[i]
+        movies_ratings_dict[user].append((movie, rating))
+        users_ratings_dict[movie].append((user, rating))
+
+    return users_ratings_dict, movies_ratings_dict
