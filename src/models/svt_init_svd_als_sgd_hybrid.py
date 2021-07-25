@@ -163,7 +163,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
             train_data = DatasetWrapper(train_users, train_movies, train_predictions)
             val_data = DatasetWrapper(val_users, val_movies, val_predictions)
 
-            self.svt_init_matrix_path = '/data/SVT_CV_Matrices/' + self.cv_svt_matrix_filenames[counter]
+            self.svt_init_matrix_path = '/data/phase1_precomputed_matrix/' + self.cv_svt_matrix_filenames[counter]
 
             self.fit(train_data=train_data, test_data=val_data)
             counter += 1

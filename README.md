@@ -1,6 +1,6 @@
-# CIL Project 2021: Collaborative Filtering
+# CIL Project 2021: Collaborative Filtering - Augmented Matrix Factorization
 
-## Requirements
+## Requirements and Setup
 ### Prepare environment using script
 Run `source bin/init.sh` to run locally, or `source bin/leonhard_init.sh` to run on leonhard (note: must be run from the project root!).
 - This will create a virtual environment (if it does not yet exist) and make sure the requirements are satisied. 
@@ -12,7 +12,8 @@ If this doesnt work run manually:
 1. Add directory to PYTHONPATH: \
     `export PYTHONPATH=/path_to_source_directory/collaborative-filtering/src:$PYTHONPATH`
     
-2. create and activate virtual environment \
+2. create and activate virtual environment 
+   
     `python3 -m venv ./venv` \
     `source venv/bin/activate`
     
@@ -20,65 +21,25 @@ If this doesnt work run manually:
     `pip install -r requirements.txt`
     
     
-For leonhard, execute the first 2 steps, and then run 
+For leonhard, execute step 1 and 2, and then 
 
-`module load python_cpu/3.7.4 eth_proxy`
+4. Load the required modules: `module load python_cpu/3.7.4 eth_proxy`
 
-`pip install -r requirements.txt`
+5. Install the requirements manually: `pip install -r requirements.txt`
 
-## Proposed Project Structure:
-```markdown
-bin/
-    init.sh
-    init_leonhard.sh
-data/
-     submissions/
-     data_train.csv
-src/
-    experiments/
-        notebook.py
-        run_xyz.py -- files that are required to actually run the approaches (for reproducible experiments)
-    models/ -- one file per method, all implemented according to some interface (see below)
-        algobase.py -- every method should inherit from this
-            - kaggle_predict
-            - predict
-            - fit
-            - cross_validate
-        svd.py
-        ncf.py
-        ...
-    utils/ -- helper functions
-        data_processing.py:
-            - read the data, and return users, items, ratings lists
-            - split into matrix and mask
-            - get_statistics
-            - get_score
-            - create_submission_file
+___
+## Data
+To be able to run some of the approaches, data has to be downloaded. To do this, visit https://polybox.ethz.ch/index.php/s/IMeZCANjqGhz6kb 
+and download the files you'll find there. These are: 
+- phase1_precomputed_matrix.zip
+- phase2_pretrained_model.zip
+
+Unpack them and place them inside the `data/` folder.
 
 
-report/ (later)
-
-requirements.txt
-
-.gitignore
-README
-
-	
-```
-
-**Algorithms-Classes (see `src/algobase.py`):** 
-
-```python
-class approach(AlgoBase):
-    def __init__(params):
-        self.parameters = params # set parameters
-    
-    def fit(train_data):
-        # train the approach
-    
-    def predict(test_data):
-        # predict value for given test-input
-
-
-	
-```
+___
+## Reproduce Experiments
+### Crossvalidation scores
+To run the crossvalidation scores for all baseline approaches, run `python src/experiments/run_crossvalidation.py`. 
+This will run the cross-validation and report the average rmse 
+for each of the appraoches listed in the paper.
