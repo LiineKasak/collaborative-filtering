@@ -3,6 +3,8 @@ import numpy as np
 from sklearn.model_selection import KFold
 from tqdm import tqdm
 from comet_ml import Experiment
+from utils.dataset import DatasetWrapper
+import pickle
 
 from src.utils import data_processing, dataset
 
@@ -25,7 +27,6 @@ class AlgoBase():
         else:
             self.method_name = self.__class__.__name__
 
-        # print("method name:", self.method_name)
         self.track_on_comet = track_to_comet
         self.api_key = api_key
         self.projectname = projectname
@@ -50,6 +51,10 @@ class AlgoBase():
     def fit(self, data):
         """ Train / Fit the predictor """
         raise NotImplementedError("fit-function has to be implemented! ")
+
+    def tune_params(self, train_data: DatasetWrapper, test_data: DatasetWrapper):
+        """ Hyper-parameter tuning """
+        raise NotImplementedError("tune_params-function has to be implemented! ")
 
     def predict_for_submission(self, name="submission"):
         """ Predict and store the result to a kaggle-submisison file """
@@ -103,3 +108,6 @@ class AlgoBase():
                 }
             )
         return rmses
+
+    def save(self, filename: str):
+        pickle.dump(self, open(filename, 'wb'))

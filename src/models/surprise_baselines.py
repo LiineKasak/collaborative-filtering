@@ -1,6 +1,7 @@
 import numpy as np
 from .algobase import AlgoBase
 from utils import data_processing
+from utils.dataset import DatasetWrapper
 from surprise import NormalPredictor
 
 

@@ -5,6 +5,8 @@ from utils import data_processing
 from models.algobase import AlgoBase
 from models.svd import SVD
 from torch.utils.tensorboard import SummaryWriter
+from utils.dataset import DatasetWrapper
+
 import time
 from tqdm import tqdm
 from collections import defaultdict
@@ -39,11 +41,13 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
         self.bi = np.zeros(self.number_of_movies)  # item bias
 
         self.directory_path = data_processing.get_project_directory()
-        self.cv_svt_matrix_filenames = ['svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-005714.npy',
-        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-080627.npy',
-        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-151440.npy',
-        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-222641.npy',
-        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210724-054423.npy']
+        self.cv_svt_matrix_filenames = [
+            'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-005714.npy',
+            'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-080627.npy',
+            'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-151440.npy',
+            'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-222641.npy',
+            'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210724-054423.npy'
+        ]
         self.svt_init_matrix_path = ''
         self.svt_matrix = np.zeros((self.number_of_users, self.number_of_movies))
 
@@ -88,11 +92,12 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
                     sum_i += rating - self.bu[user_idx]
                 self.bi[i] = (sum_i/(reg_i+len(ir[i])))
 
-    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
-        
+    def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
+        users, movies, ground_truth = train_data.users, train_data.movies, train_data.ratings
+
         with open(self.directory_path + self.svt_init_matrix_path, 'rb') as f:
             self.svt_matrix = np.load(f, allow_pickle=True)
-            Yk = np.load(f, allow_pickle=True) #this is not used but in the file since it was needed for svt
+            # Yk = np.load(f, allow_pickle=True) #this is not used but in the file since it was needed for svt
         
         self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
 
@@ -101,9 +106,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
 
         self.pu, self.qi = SVD.get_embeddings(self.k, self.svt_matrix)
 
-        run_validation = False
         indices = np.arange(len(users))
-        # global_mean = np.mean(self.matrix[np.nonzero(self.matrix)])
 
         time_string = time.strftime("%Y%m%d-%H%M%S")
         log_dir = f'./logs/SVT_INIT_SVD_ALS_SGD_{time_string}'
@@ -129,9 +132,9 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
                 rmse_loss = data_processing.get_score(predictions, ground_truth)
                 writer.add_scalar('rmse', rmse_loss, epoch)
 
-                if run_validation:
-                    valid_predictions = self.predict(valid_users, valid_movies)
-                    reconstruction_rmse = data_processing.get_score(valid_predictions, valid_ground_truth)
+                if test_data:
+                    valid_predictions = self.predict(test_data.users, test_data.movies)
+                    reconstruction_rmse = data_processing.get_score(valid_predictions, test_data.ratings)
                     pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss:.4f}, val_rmse {reconstruction_rmse:.4f}')
                     writer.add_scalar('val_rmse', reconstruction_rmse, epoch)
                 else:
@@ -157,9 +160,12 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
                 data_pd.iloc[train_index])
             val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(
                 data_pd.iloc[test_index])
+            train_data = DatasetWrapper(train_users, train_movies, train_predictions)
+            val_data = DatasetWrapper(val_users, val_movies, val_predictions)
 
-            self.svt_init_matrix = self.cv_svt_matrix_filenames[counter]
-            self.fit(train_users, train_movies, train_predictions, val_users, val_movies, val_predictions)
+            self.svt_init_matrix_path = '/data/SVT_CV_Matrices/' + self.cv_svt_matrix_filenames[counter]
+
+            self.fit(train_data=train_data, test_data=val_data)
             counter += 1
 
             predictions = self.predict(val_users, val_movies)
@@ -191,9 +197,12 @@ if __name__ == '__main__':
     svt_init_svd_hybrid = SVT_INIT_SVD_ALS_SGD(k_singular_values=k, epochs=epochs, verbal=True)
 
     if submit:
-        users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
-        svt_init_svd_hybrid.fit(users, movies, predictions)
-        svt_init_svd_hybrid.predict_for_submission(f'svt_init_svd_als_sgd_k{k}_{epochs}')
+        data = DatasetWrapper(data_pd)
+        svt_init_svd_hybrid.fit(data)
+        # svt_init_svd_hybrid.predict_for_submission(f'svt_init_svd_als_sgd_k{k}_{epochs}')
+        svt_init_svd_hybrid.save(f'models/submit/svt_advanced_{k}.pickle') # export model
+        # instead of fitting for all data, fit only for cross-validation fold
+        # split on panda dataframe and give it a fold?
     else:
         rmses = svt_init_svd_hybrid.cross_validate(data_pd)
         print("RMSES of ", svt_init_svd_hybrid.method_name, "\n", rmses, "\n")
