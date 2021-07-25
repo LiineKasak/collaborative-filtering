@@ -12,25 +12,28 @@ import pickle
 
 class AuMF(AlgoBase):
     """ Augmented Matrix Factorization """
-    def __init__(self, track_to_comet=False):
+    def __init__(self, epochs=10, batch_size=256, learning_rate=0.01, device="cpu", track_to_comet=False):
         AlgoBase.__init__(self, track_to_comet)
-
-        # TODO: add parameters here (also add them as input to AuMF)
 
         self.svt_hybrid = SVT_INIT_SVD_ALS_SGD(verbal=True)
         self.gmf = None
 
-        self.use_pretrained_svd = False
-        self.device = "cpu"
-        self.epochs = 5
-        self.batch_size = 256
-        self.lr = 0.001
+
+        self.use_pretrained_svd = True
+
+        self.device = device
+        self.epochs = epochs
+        self.batch_size = batch_size
+        self.lr = learning_rate
+
         self.fold = '_no_cv'
         self.svt_precompute_path = None
 
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
-        self.svt_precompute_path = data_processing.get_project_directory() +  f'/data/svt_precomputed/svt_advanced_{self.svt_hybrid.k}{self.fold}.pickle'
+        # path of the pretrained model (if it exists)
+        self.svt_precompute_path = data_processing.get_project_directory() + f'/data/phase2_pretrained_model/svt_advanced_{self.svt_hybrid.k}{self.fold}.pickle'
+
         if not self.use_pretrained_svd:
             self.svt_hybrid.fit(train_data)
             self.svt_hybrid.save(self.svt_precompute_path)  # export model
@@ -57,7 +60,9 @@ class AuMF(AlgoBase):
 
     def cross_validate(self, data_pd, folds=5, random_state=42):
         """ Run Crossvalidation using kfold, taking a pandas-dataframe of the raw data as input
-                  (as it is read in from the .csv file) """
+                  (as it is read in from the .csv file)
+
+        """
         kfold = KFold(n_splits=folds, shuffle=True, random_state=random_state)
 
         rmses = []
@@ -69,6 +74,7 @@ class AuMF(AlgoBase):
         for train_index, test_index in kfold.split(data_pd):
             self.fold = f"_fold{counter}"
 
+            # load train and validation data
             train_users, train_movies, train_predictions = data_processing.extract_users_items_predictions(
                 data_pd.iloc[train_index])
             val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(
@@ -76,16 +82,21 @@ class AuMF(AlgoBase):
             train_data = DatasetWrapper(train_users, train_movies, train_predictions)
             val_data = DatasetWrapper(val_users, val_movies, val_predictions)
 
-            self.svt_hybrid.svt_init_matrix_path = '/data/SVT_CV_Matrices/' + self.svt_hybrid.cv_svt_matrix_filenames[counter]
+            # load initialization matrix for the svt-model
+            self.svt_hybrid.svt_init_matrix_path = '/data/phase1_precomputed_matrix/' + self.svt_hybrid.cv_svt_matrix_filenames[counter]
 
+            # fit
             self.fit(train_data=train_data, test_data=val_data)
-            counter += 1
 
+            # predict and compute scores
             predictions = self.predict(val_users, val_movies)
             rmse = data_processing.get_score(predictions, val_predictions)
+
             rmses.append(data_processing.get_score(predictions, val_predictions))
             print(f"rsme: {rmse}")
 
+            # update counters
+            counter += 1
             bar.update()
 
         bar.close()
