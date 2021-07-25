@@ -47,11 +47,7 @@ class AlgoBase():
         """ Predict ratings for a given set of users and movies """
         raise NotImplementedError("predict-function has to be implemented! ")
 
-    def fit(self, users, movies, predictions):
-        """ Train / Fit the predictor """
-        raise NotImplementedError("fit-function has to be implemented! ")
-
-    def fit(self, datawrapper):
+    def fit(self, data):
         """ Train / Fit the predictor """
         raise NotImplementedError("fit-function has to be implemented! ")
 
@@ -89,7 +85,11 @@ class AlgoBase():
             self.fit(trainset)
 
             predictions = self.predict(val_users, val_movies)
-            rmses.append(data_processing.get_score(predictions, val_predictions))
+            rmse = data_processing.get_score(predictions, val_predictions)
+            rmses.append(rmse)
+
+            print(rmse)
+
             bar.update()
 
         bar.close()
