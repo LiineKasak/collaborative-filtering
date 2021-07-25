@@ -1,14 +1,13 @@
 """ Mostly functions adapted from the ones in the jupyter notebook provided by the course """
 import math
 from collections import defaultdict
-
+from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 from pathlib import Path
 import os
 from surprise import Dataset, Reader
-from tqdm import tqdm
 
 number_of_users, number_of_movies = (10000, 1000)
 
@@ -74,10 +73,14 @@ def read_data():
     return data_pd
 
 
-def get_data_mask(users, movies, predictions):
+def get_data_mask(users, movies, predictions, impute=True):
     """ given input data, return a mask containing 1 if the prediction is available,
     and a data matrix containing that prediction (using mean imputation) """
-    data = np.full((number_of_users, number_of_movies), np.mean(predictions))
+
+    if impute:
+        data = np.full((number_of_users, number_of_movies), np.mean(predictions))
+    else:
+        data = np.full((number_of_users, number_of_movies), np.nan)
     mask = np.zeros((number_of_users, number_of_movies))  # 0 -> unobserved value, 1->observed value
 
     for user, movie, pred in zip(users, movies, predictions):
@@ -85,6 +88,13 @@ def get_data_mask(users, movies, predictions):
         mask[user][movie] = 1
 
     return data, mask
+
+
+def get_users_movies_from_file(filename='sampleSubmission.csv'):
+    """ Return the users and movies from a certain file """
+    directory_path = get_project_directory()
+    file_pd = pd.read_csv(directory_path + '/data/' + filename)
+    users, movies, _ = extract_users_items_predictions(file_pd)
 
 
 def get_users_movies_to_predict():
@@ -123,6 +133,26 @@ def load_surprise_dataframe_from_pd(data_pd):
     data = Dataset.load_from_df(df[['users', 'items', 'predictions']], reader=reader)
     return data
 
+def create_validation_file(users, movies, predictions, ground_truth_predicitons, name='validation'):
+    """
+    create a file storing (for a given prediction), the users, movies, prediction and the ground_truth
+    This can be used for dataset analysis
+    """
+
+    directory_path = get_project_directory()
+
+    pred_pd = pd.DataFrame(columns=['User', 'Movie','Prediction', 'GroundTruth'])
+    pred_pd['User'] = users
+    pred_pd['Movie'] = movies
+    pred_pd['Prediction'] = predictions
+    pred_pd['GroundTruth'] = ground_truth_predicitons
+
+    # export to file:
+    # archive_name is required to create working zip on my computer
+    pred_pd.to_csv(directory_path + '/data/validation_outputs/' + name + '.csv',
+                   index=False,
+                   )
+
 
 def create_submission_file(sub_users, sub_movies, predictions, name='submission'):
     """ predictions, create a file to submit to kaggle and store it under name.csv """
@@ -150,7 +180,7 @@ def create_dicts(users, movies, ratings):
     movies_ratings_dict = defaultdict(list)
     users_ratings_dict = defaultdict(list)
 
-    for i in tqdm(range(len(users)), desc='loading dicts'):
+    for i in range(len(users)):
         user, movie, rating = users[i], movies[i], ratings[i]
         movies_ratings_dict[user].append((movie, rating))
         users_ratings_dict[movie].append((user, rating))

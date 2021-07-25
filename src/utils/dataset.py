@@ -1,3 +1,5 @@
+import numpy as np
+
 from utils import data_processing
 import pandas as pd
 from surprise import Dataset, Reader
@@ -19,14 +21,42 @@ class DatasetWrapper:
 
     """
 
-    def __init__(self, data_pd):
-        self.data_pd = data_pd
-        self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(data_pd)
+    def __init__(self, *args):
+        if len(args) == 1:
+            self.data_pd = args[0]
+            self.users, self.movies, self.ratings = data_processing.extract_users_items_predictions(self.data_pd)
+        else:
+            self.users, self.movies, self.ratings = args[0], args[1], args[2]
 
-        self.data, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings)
+        self.data_matrix, self.mask = data_processing.get_data_mask(self.users, self.movies, self.ratings, impute=False)
 
-        self.user_dict, self.movie_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
+        self.movie_dict, self.user_dict = data_processing.create_dicts(self.users, self.movies, self.ratings)
         self.triples = list(zip(self.users, self.movies, self.ratings))
+
+        self.num_users, self.num_movies = data_processing.get_number_of_users(), data_processing.get_number_of_movies()
+
+        self.user_per_movie_encodings = None
+        self.movie_per_user_encodings = None
+
+        self.movies_per_user_representation()
+        self.users_per_movie_representation()
+
+        self.movie_means = np.nanmean(self.data_matrix, axis=0)
+        self.user_means = np.nanmean(self.data_matrix, axis=1)
+
+        self.movie_bias = np.zeros(self.movie_means.shape)     #self.movie_means - np.mean(self.movie_means)
+        self.user_bias = np.zeros(self.user_means.shape)        #self.user_means - np.mean(self.user_means)
+
+
+
+    def rating_available(self, user, query_movie):
+        """ Determine if this user has already rated the query movie"""
+        user_dict = self.user_dict[user]
+        for (movie, rating) in user_dict:
+            if movie == query_movie:
+                return rating
+            else:
+                return 0
 
     def get_users_movies_predictions(self):
         """ Return lists of users, movies and predictions """
@@ -38,7 +68,7 @@ class DatasetWrapper:
 
     def get_data_and_mask(self):
         """ Return the data-matrix (users x movies) and the corresponding mask of available ratings """
-        return self.data, self.mask
+        return self.data_matrix, self.mask
 
     def create_dataloader(self, batch_size, device=None):
         """ Create a pytorch dataloader of this dataset """
@@ -66,3 +96,34 @@ class DatasetWrapper:
         data = Dataset.load_from_df(df[['users', 'items', 'predictions']], reader=reader)
 
         return data.build_full_trainset()
+
+    def get_user_vector(self, user_id):
+        return self.user_to_movie_vector(self.user_dict[user_id]).reshape(1, -1)
+
+    def user_to_movie_vector(self, user_array):
+        user_per_movie_encoding = np.zeros(self.num_movies)
+        for (movie, rating) in user_array:
+            user_per_movie_encoding[movie] = rating
+
+        return user_per_movie_encoding
+
+    def movie_to_user_vector(self, movie_array):
+        movie_per_user_encoding = np.zeros(self.num_users)
+        for (user, rating) in movie_array:
+            movie_per_user_encoding[user] = rating
+
+        return movie_per_user_encoding
+
+    def movies_per_user_representation(self):
+        self.movie_per_user_encodings = np.zeros((self.num_users, self.num_movies))
+        for user in range(self.num_users):
+            self.movie_per_user_encodings[user] = self.user_to_movie_vector(self.user_dict[user])
+
+        return self.movie_per_user_encodings
+
+    def users_per_movie_representation(self):
+        self.user_per_movie_encodings = np.zeros((self.num_movies, self.num_users))
+        for movie in range(self.num_movies):
+            self.user_per_movie_encodings[movie] = self.movie_to_user_vector(self.movie_dict[movie])
+
+        return self.user_per_movie_encodings
