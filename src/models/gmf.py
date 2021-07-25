@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from .algobase import AlgoBase
+from algobase import AlgoBase
 from utils.dataset import DatasetWrapper
 from utils.fitting import train
 from ray import tune
@@ -103,6 +103,7 @@ if __name__ == '__main__':
     from utils.experiment import run_experiment
     import pickle
     from models.svt_svd import SVT_SVD
+    from models.svt_init_svd_als_sgd_hybrid import SVT_INIT_SVD_ALS_SGD
 
     def parser_setup(parser: ArgumentParser):
         parser.add_argument('--svd', type=str, help='SVD pickle')
