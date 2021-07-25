@@ -1,5 +1,7 @@
 """ Mostly functions adapted from the ones in the jupyter notebook provided by the course """
 import math
+from collections import defaultdict
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
@@ -141,3 +143,15 @@ def create_submission_file(sub_users, sub_movies, predictions, name='submission'
 
     # submit from terminal:
     # !kaggle competitions submit cil-collaborative-filtering-2021 -f ./data/submissions/name.csv.zip -m '<message>'
+
+
+def create_dicts(users, movies, ratings):
+    movies_ratings_dict = defaultdict(list)
+    users_ratings_dict = defaultdict(list)
+
+    for i in tqdm(range(len(users)), desc='loading dicts'):
+        user, movie, rating = users[i], movies[i], ratings[i]
+        movies_ratings_dict[user].append((movie, rating))
+        users_ratings_dict[movie].append((user, rating))
+
+    return users_ratings_dict, movies_ratings_dict
