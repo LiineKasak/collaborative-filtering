@@ -5,6 +5,7 @@ from utils.dataset import DatasetWrapper
 from sklearn.model_selection import train_test_split
 from typing import Callable, Any
 import torch
+from sklearn.model_selection import KFold
 
 
 def run_experiment(
@@ -22,11 +23,13 @@ def run_experiment(
     parser.add_argument('--cross-validate', dest='crossval', action='store_true')
     parser.add_argument('--tune', dest='tune', action='store_true')
     parser.add_argument('--submit', action='store_true')
+    parser.add_argument('--fold', type=int)
     parser.set_defaults(
         validate=True,
         crossval=False,
         tune=False,
         submit=False,
+        fold=None,
     )
     args = parser.parse_args()
 
@@ -43,7 +46,16 @@ def run_experiment(
         model.cross_validate(data_pd)
     else:
         if args.validate or args.tune:
-            train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
+            if args.fold:
+                kfold = KFold(n_splits=5, shuffle=True, random_state=42)
+                i = 0
+                for train_index, test_index in kfold.split(data_pd):
+                    train_pd, test_pd = data_pd.iloc[train_index], data_pd.iloc[test_index]
+                    i += 1
+                    if i == args.fold:
+                        break
+            else:
+                train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
             train_data, test_data = DatasetWrapper(train_pd), DatasetWrapper(test_pd)
         else:
             train_data = DatasetWrapper(data_pd)
