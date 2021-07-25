@@ -42,7 +42,9 @@ class SVD_SGD(AlgoBase):
         movie_biases_matrix = np.reshape(self.bi, (1, self.number_of_movies))
         self.reconstructed_matrix = dot_product + user_biases_matrix + movie_biases_matrix + self.mu
 
-    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
+    def fit(self, data, valid_users=None, valid_movies=None, valid_ground_truth=None):
+        users, movies, ground_truth = data.users, data.movies, data.ratings
+
         self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
         # normalized_matrix = data_processing.normalize_by_variance(self.matrix)
         # self.pu, self.qi = SVD.get_embeddings(self.k, normalized_matrix)
@@ -62,7 +64,6 @@ class SVD_SGD(AlgoBase):
                 for user, movie in zip(users[indices], movies[indices]):
                     prediction = self.bu[user] + self.bi[movie] + np.dot(self.pu[user], self.qi[movie])
                     error = self.matrix[user, movie] - prediction
-                    # bias_change = self.learning_rate * (error - self.regularization * (self.bu[user] + self.bi[movie] - global_mean))
 
                     self.bu[user] += self.learning_rate * (error - self.regularization * self.bu[user])
                     self.bi[movie] += self.learning_rate * (error - self.regularization * self.bi[movie])

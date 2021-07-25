@@ -6,6 +6,9 @@ import numpy as np
 
 
 class DataAnalyzer():
+    """
+        Tool to help analyze the statistics of the provided dataset
+    """
     def __init__(self, data_pd):
         self.data_wrapper = dataset.DatasetWrapper(data_pd)
         self.df = pd.DataFrame()
@@ -25,12 +28,9 @@ class DataAnalyzer():
 
         plt.hist(self.df.users, bins=self.data_wrapper.num_users)
 
-        # plt.hist(self.df['ratings'], bins=[1,2,3,4,5])
-
         plt.show()
 
     def create_test_histograms(self, filename='sampleSubmission.csv', with_ratings=False):
-
         if with_ratings:
             directory_path = data_processing.get_project_directory()
             data_pd = pd.read_csv(directory_path + '/data/'+filename)

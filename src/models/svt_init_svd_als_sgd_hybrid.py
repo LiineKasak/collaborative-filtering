@@ -79,8 +79,9 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
                     sum_i += rating - self.bu[user_idx]
                 self.bi[i] = (sum_i/(reg_i+len(ir[i])))
 
-    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
-        
+    def fit(self, data, valid_users=None, valid_movies=None, valid_ground_truth=None):
+        users, movies, ground_truth = data.users, data.movies, data.ratings
+
         with open(self.directory_path + '/data/svt_Xopt_Yk_sh100k_0_to_2000_Submit.npy', 'rb') as f:
             self.matrix = np.load(f, allow_pickle=True)
             Yk = np.load(f, allow_pickle=True)

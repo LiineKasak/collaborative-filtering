@@ -79,7 +79,8 @@ class SVD_ALS_SGD(AlgoBase):
                     sum_i += rating - self.bu[user_idx]
                 self.bi[i] = (sum_i/(reg_i+len(ir[i])))
 
-    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
+    def fit(self, data, valid_users=None, valid_movies=None, valid_ground_truth=None):
+        users, movies, ground_truth = data.users, data.movies, data.ratings
         
         self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
 

@@ -14,7 +14,8 @@ class SVD(AlgoBase):
         self.k = k_singular_values  # number of singular values to use
         self.reconstructed_matrix = np.zeros((self.number_of_movies, self.number_of_movies))
 
-    def fit(self, users, movies, predictions):
+    def fit(self, data):
+        users, movies, predictions = data.users, data.movies, data.ratings
         matrix, _ = data_processing.get_data_mask(users, movies, predictions)
         U, s, Vt = np.linalg.svd(matrix, full_matrices=False)
 

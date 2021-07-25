@@ -54,7 +54,8 @@ class SVT_SVD(AlgoBase):
         movie_biases_matrix = np.reshape(self.bi, (1, self.number_of_movies))
         self.reconstructed_matrix = dot_product + user_biases_matrix + movie_biases_matrix + self.mu
 
-    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
+    def fit(self, data, valid_users=None, valid_movies=None, valid_ground_truth=None):
+        users, movies, ground_truth = data.users, data.movies, data.ratings
 
         with open(self.directory_path + '/data/svt_Xopt_Yk_sh100k_5000_to_5500.npy', 'rb') as f:
             self.matrix = np.load(f, allow_pickle=True)

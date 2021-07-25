@@ -1,22 +1,15 @@
 import sklearn
 from sklearn.experimental import enable_hist_gradient_boosting  # noqa
 from sklearn.ensemble import HistGradientBoostingClassifier
-from sklearn.feature_selection import VarianceThreshold
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.neighbors import NearestNeighbors, KNeighborsClassifier
-from sklearn.semi_supervised import LabelPropagation, LabelSpreading
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.neural_network import MLPClassifier
-from models.adapted_svd_sgd import ADAPTED_SVD_SGD
-from utils import data_processing, dataset, data_analysis
+
+from models.svd_sgd import SVD_SGD
+from utils import data_processing, dataset#, data_analysis
 from models.algobase import AlgoBase
 import numpy as np
 import pandas as pd
 
-from models.svd import SVD
-from models.svd_sgd import SVD_SGD
 
 
 class svdInputClassifier(AlgoBase):
@@ -31,45 +24,12 @@ class svdInputClassifier(AlgoBase):
         self.user_embeddings, self.movie_embeddings = None, None
 
         if clf is None:
-            # self.clf = MLPClassifier(hidden_layer_sizes=(100, 100),
-            #                          activation='relu',
-            #                          solver='adam',
-            #                          alpha=0.0001,
-            #                          batch_size='auto',
-            #                          # learning_rate='constant',    # only used with sgd
-            #                          learning_rate_init=0.001,
-            #                          # power_t=0.5,                  # only used if learning_rate='invscaling'
-            #                          max_iter=200,
-            #                          shuffle=True,
-            #                          random_state=42,
-            #                          tol=0.0001,
-            #                          verbose=True,
-            #                          warm_start=False,
-            #                          momentum=0.9,
-            #                          # nesterovs_momentum=True,  # only with sgd
-            #                          early_stopping=True,
-            #                          validation_fraction=0.1,
-            #                          beta_1=0.9,
-            #                          beta_2=0.999,
-            #                          epsilon=1e-08,
-            #                          n_iter_no_change=10,
-            #                          max_fun=15000)
-            # self.clf = KNeighborsClassifier(n_neighbors=5,
-            #                                 weights='uniform',
-            #                                 algorithm='auto',
-            #                                 leaf_size=30,
-            #                                 p=2,
-            #                                 metric='minkowski',
-            #                                 metric_params=None,
-            #                                 n_jobs=-1)
-
             self.clf = HistGradientBoostingClassifier(scoring='neg_root_mean_squared_error', l2_regularization=1e-3, verbose=1, max_iter=150)
 
         else:
             self.clf = clf
 
-
-        self.sgd = ADAPTED_SVD_SGD(verbal=True, epochs=epochs, k_singular_values=k, use_prestored=True, store=False)
+        self.sgd = SVD_SGD(verbal=False, epochs=epochs, k_singular_values=k)
 
     def predict(self, users, movies):
         X = self.get_features(users, movies)
