@@ -12,7 +12,8 @@ class SurpriseBaselines(AlgoBase):
 
         self.predictor = predictor     # random predictor; will be overwritten by the init function
 
-    def fit(self, users, movies, predictions):
+    def fit(self, data):
+        users, movies, predictions = data.users, data.movies, data.ratings
         trainset = data_processing.load_surprise_dataframe_from_arrays(users, movies, predictions).build_full_trainset()
         self.predictor.fit(trainset)
 
