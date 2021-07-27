@@ -17,8 +17,6 @@ class AuMF(AlgoBase):
 
     def __init__(self, params: argparse.Namespace):
         AlgoBase.__init__(self)
-        print(params)
-
         svt_params = SVT_INIT_SVD_ALS_SGD.default_params()
         self.svt_hybrid = SVT_INIT_SVD_ALS_SGD(svt_params)
         self.gmf = None
@@ -41,7 +39,6 @@ class AuMF(AlgoBase):
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         # path of the pretrained model (if it exists)
         self.svt_precompute_path = data_processing.get_project_directory() + f'/data/phase2_pretrained_model/svt_advanced_{self.svt_hybrid.k}{self.fold}.pickle'
-        print(self.svt_precompute_path)
         if not self.use_pretrained_svd:
             self.svt_hybrid.fit(train_data)
             self.svt_hybrid.save(self.svt_precompute_path)  # export model
@@ -103,8 +100,7 @@ class AuMF(AlgoBase):
                                                    name=f'aumf_predictions_fold{counter}')
             rmse = data_processing.get_score(predictions, val_predictions)
 
-            rmses.append(data_processing.get_score(predictions, val_predictions))
-            print(f"rsme: {rmse}")
+            rmses.append(rmse)
 
             # update counters
             counter += 1
@@ -112,15 +108,6 @@ class AuMF(AlgoBase):
 
         bar.close()
 
-        mean_rmse = np.mean(rmses)
-        # track mean rmses to comet if we are tracking
-        if self.track_on_comet:
-            self.comet_experiment.log_metrics(
-                {
-                    "root_mean_squared_error": mean_rmse
-                }
-            )
-        print(rmses)
         return rmses
 
 
