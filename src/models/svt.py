@@ -1,32 +1,35 @@
+import argparse
+
 import numpy as np
-from sklearn.model_selection import train_test_split
-from utils import data_processing
+from sklearn.model_selection import KFold
+from tqdm import tqdm
+
 from models.algobase import AlgoBase
+from utils.dataset import DatasetWrapper
+from utils import data_processing
 from torch.utils.tensorboard import SummaryWriter
 import time
-from tqdm import tqdm
+
 from scipy import sparse
 
 EPSILON = 1e-5
 
-
 class SVT(AlgoBase):
     """
-    Running Singular Value Thresholding Algorithm.
+    Singular Value Thresholding Algorithm. It should be run about 2000 iterations for satisfying results.
+    It takes about 10 hours to run 2000 iterations with the current algorithm. 
     By "A Singular Value Thresholding Algorithm for Matrix Completion":
     https://arxiv.org/pdf/0810.3286.pdf
     """
 
-    def __init__(self, k_singular_values=12, shrink_val = 30000, max_it=150, learning_rate=1.99, verbal=False,
-                 track_to_comet=False, useInitMatrix=False):
-        AlgoBase.__init__(self, track_to_comet)
+    def __init__(self, params: argparse.Namespace):
+        AlgoBase.__init__(self)
 
-        self.max_it = max_it
-        self.shrink_val = shrink_val
-        self.learning_rate = learning_rate
-        self.verbal = verbal
-        self.k_singular_values = k_singular_values
-        self.useInitMatrix = useInitMatrix
+        self.max_it = params.max_it
+        self.shrink_val = params.shrink_val
+        self.learning_rate = params.learning_rate
+        self.verbal = params.verbal
+        self.k_singular_values = params.k_singular_values
 
         self.matrix = np.zeros((self.number_of_users, self.number_of_movies))
         self.reconstructed_matrix = np.zeros((self.number_of_users, self.number_of_movies))
@@ -35,6 +38,9 @@ class SVT(AlgoBase):
         self.Yopt = np.zeros((self.number_of_users, self.number_of_movies))
         self.Y0 = np.zeros((self.number_of_users, self.number_of_movies))
 
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(k_singular_values=12, shrink_val =100000, max_it=2000, learning_rate=1.99, verbal=False)
 
     def _update_reconstructed_matrix(self):
         U, s, Vt = np.linalg.svd(self.Xopt, full_matrices=False)
@@ -45,21 +51,15 @@ class SVT(AlgoBase):
         self.reconstructed_matrix = U.dot(S).dot(Vt)
         print(self.reconstructed_matrix[0][0])
 
-    def fit(self, users, movies, ground_truth, valid_users=None, valid_movies=None, valid_ground_truth=None):
+    def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
+        users, movies, ground_truth = train_data.users, train_data.movies, train_data.ratings
         self.data, self.mask = data_processing.get_data_mask(users, movies, ground_truth)
-
-        run_validation = valid_users is not None and valid_movies is not None and valid_ground_truth is not None
 
         time_string = time.strftime("%Y%m%d-%H%M%S")
         log_dir = f'./logs/SVT_{time_string}'
         writer = SummaryWriter(log_dir)
 
-        if (self.useInitMatrix):
-            with open('svt_Xopt_Yk.npy', 'rb') as f:
-                self.Xk = np.load(f, allow_pickle=True)
-                self.Yk = np.load(f, allow_pickle=True)
-        else:
-            self.Yk = self.Y0
+        self.Yk = self.Y0
 
         with tqdm(total=self.max_it * len(users), disable=not self.verbal) as pbar:
             for iter in range(self.max_it):
@@ -85,14 +85,19 @@ class SVT(AlgoBase):
                     predictions = self.predict(users, movies)
                     rmse_loss = data_processing.get_score(predictions, ground_truth)
                     writer.add_scalar('rmse', rmse_loss, iter)
-                    valid_predictions = self.predict(valid_users, valid_movies)
-                    reconstruction_rmse = data_processing.get_score(valid_predictions, valid_ground_truth)
-                    writer.add_scalar('val_rmse', reconstruction_rmse, iter)
+                    
+                    if test_data:
+                        valid_predictions = self.predict(test_data.users, test_data.movies)
+                        reconstruction_rmse = data_processing.get_score(valid_predictions, test_data.ratings)
+                        pbar.set_description(f'Iteration {iter}:  rmse {rmse_loss:.4f}, val_rmse {reconstruction_rmse:.4f}')
+                        writer.add_scalar('val_rmse', reconstruction_rmse, iter)
+                        rmse = reconstruction_rmse
+                    else:
+                        pbar.set_description(f'Epoch {epoch}:  rmse {rmse_loss}')
+                        rmse = rmse_loss
 
             self._update_reconstructed_matrix()
-            with open('svt_Xopt_Yk.npy', 'wb') as f:
-                np.save(f, self.Xopt, allow_pickle=True)
-                np.save(f, self.Yopt, allow_pickle=True)
+        return rmse, self.epochs
 
     def predict(self, users, movies):
         predictions = data_processing.extract_prediction_from_full_matrix(self.reconstructed_matrix, users, movies)
@@ -122,7 +127,7 @@ class SVT(AlgoBase):
             val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(
                 data_pd.iloc[test_index])
 
-            with open('/data/phase1_precomputed_matrix/' + cv_svt_matrix_filenames[counter], 'rb') as f:
+            with open(data_processing.get_project_directory() + '/data/phase1_precomputed_matrix/' + cv_svt_matrix_filenames[counter], 'rb') as f:
                 self.Xopt =  np.load(f, allow_pickle=True)
                 self.Y0 = np.load(f, allow_pickle=True)
 
@@ -146,21 +151,3 @@ class SVT(AlgoBase):
             )
         print(rmses)
         return rmses
-
-
-if __name__ == '__main__':
-    data_pd = data_processing.read_data()
-    shrink_val = 100000
-    max_it= 500
-    k_singular_values = 12
-    svt = SVT(k_singular_values=k_singular_values, shrink_val=shrink_val, max_it=max_it)
-
-    submit = False
-
-    if submit:
-        users, movies, predictions = data_processing.extract_users_items_predictions(data_pd)
-        svt.fit(users, movies, predictions)
-        svt.predict_for_submission(f'svt{shrink_val}_{max_it}')
-    else:
-        rmses = svt.cross_validate(data_pd)
-        print("RMSES of ", svt.method_name, "\n", rmses, "\n")
