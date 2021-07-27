@@ -48,7 +48,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
             'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-222641.npy',
             'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210724-054423.npy'
         ]
-        self.svt_init_matrix_path = ''
+        self.svt_init_matrix_path = '/data/phase1_precomputed_matrix/svt_Xopt_Yk_sh100k_0_to_2000_Submit.npy'
         self.svt_matrix = np.zeros((self.number_of_users, self.number_of_movies))
 
         self.mu = 0
@@ -179,35 +179,4 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
             bar.update()
 
         bar.close()
-
-        mean_rmse = np.mean(rmses)
-        # track mean rmses to comet if we are tracking
-        if self.track_on_comet:
-            self.comet_experiment.log_metrics(
-                {
-                    "root_mean_squared_error": mean_rmse
-                }
-            )
-        print(rmses)
         return rmses
-
-
-if __name__ == '__main__':
-    data_pd = data_processing.read_data()
-    k = 12
-    epochs = 43
-
-    submit = False
-
-    svt_init_svd_hybrid = SVT_INIT_SVD_ALS_SGD(k_singular_values=k, epochs=epochs, verbal=True)
-
-    if submit:
-        data = DatasetWrapper(data_pd)
-        svt_init_svd_hybrid.fit(data)
-        # svt_init_svd_hybrid.predict_for_submission(f'svt_init_svd_als_sgd_k{k}_{epochs}')
-        svt_init_svd_hybrid.save(f'models/submit/svt_advanced_{k}.pickle')  # export model
-        # instead of fitting for all data, fit only for cross-validation fold
-        # split on panda dataframe and give it a fold?
-    else:
-        rmses = svt_init_svd_hybrid.cross_validate(data_pd)
-        print("RMSES of ", svt_init_svd_hybrid.method_name, "\n", rmses, "\n")
