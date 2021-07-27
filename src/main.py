@@ -56,12 +56,7 @@ def get_model(model : str):
         print("This model does not exist.")
 
 
-print('model: ', args.model)
-print('before adding params: ', args)
-print('default params: ', AuMF.default_params())
-print('after adding params: ', get_params(args, AuMF.default_params()))
 model = get_model(args.model)
-print('model: ', model)
 data_pd = data_processing.read_data()
 data = DatasetWrapper(data_pd)
 
