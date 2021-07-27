@@ -30,12 +30,11 @@ class AuMF(AlgoBase):
         self.batch_size = params.batch_size
         self.lr = params.learning_rate
 
-        self.fold = '_fold0'
+        self.fold = '_no_cv'
         self.svt_precompute_path = None
 
     @staticmethod
     def default_params():
-        print("reutrning AUMF default parameters")
         return argparse.Namespace(epochs=10, batch_size=256, learning_rate=0.01, device="cpu",
                                   verbal=True)
 
@@ -50,15 +49,14 @@ class AuMF(AlgoBase):
         svd = pickle.load(open(self.svt_precompute_path, 'rb'))
 
         self.gmf = GMF(user_embedding=svd.pu,
-                        movie_embedding=svd.qi,
-                        user_bias=svd.bu,
-                        movie_bias=svd.bi,
-                        epochs=self.epochs,
-                        batch_size=self.batch_size,
-                        learning_rate=self.lr,
-                        device=self.device)
+                       movie_embedding=svd.qi,
+                       user_bias=svd.bu,
+                       movie_bias=svd.bi,
+                       epochs=self.epochs,
+                       batch_size=self.batch_size,
+                       learning_rate=self.lr,
+                       device=self.device)
 
-        print("Fitting the GMF")
         self.gmf.fit(train_data=train_data, test_data=test_data)
 
     def predict(self, users, movies):

@@ -18,6 +18,7 @@ class AlgoBase():
         self.number_of_users, self.number_of_movies = (10000, 1000)
 
         self.method_name = self.__class__.__name__
+        print(self.method_name)
 
 
     def default_params(self):

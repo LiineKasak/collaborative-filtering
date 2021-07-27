@@ -43,8 +43,8 @@ def get_params(params, default_params):
 model_dict = {
     'svd_sgd': SVD_SGD(get_params(args, SVD_SGD.default_params())),
     'aumf': AuMF(get_params(args, AuMF.default_params())),
-    'knn': KNNImprovedSVDEmbeddings(get_params(args, SVD_SGD.default_params())),
-    'log_reg': LogisticRegression(get_params(args, AuMF.default_params())),
+    'knn': KNNImprovedSVDEmbeddings(get_params(args, KNNImprovedSVDEmbeddings.default_params())),
+    'log_reg': LogisticRegression(get_params(args, LogisticRegression.default_params())),
     # TODO: add models
 }
 

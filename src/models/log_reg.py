@@ -45,7 +45,7 @@ class LogisticRegression(AlgoBase):
         users, movies, ratings = datawrapper.users, datawrapper.movies, datawrapper.ratings
 
         # compute svd
-        self.sgd.fit(datawrapper, val_users, val_movies)
+        self.sgd.fit(datawrapper)
 
         X = self.get_features(users, movies)
         y = ratings

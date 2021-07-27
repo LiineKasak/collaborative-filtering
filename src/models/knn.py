@@ -46,7 +46,6 @@ class KNNImprovedSVDEmbeddings(AlgoBase):
     def fit(self, data_wrapper):
         self.data_wrapper = data_wrapper
 
-        print("fitting the svd...")
         self.svd.fit(data_wrapper)
         self.user_embeddings = self.svd.pu
         self.movie_embeddings = self.svd.qi
