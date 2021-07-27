@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 from sklearn.model_selection import KFold
 from tqdm import tqdm
@@ -9,46 +11,48 @@ from models.svt_init_svd_als_sgd_hybrid import SVT_INIT_SVD_ALS_SGD
 from models.gmf import GMF
 import pickle
 
+
 class AuMF(AlgoBase):
     """ Augmented Matrix Factorization """
-    def __init__(self, epochs=10, batch_size=256, learning_rate=0.01, device="cpu", track_to_comet=False):
-        AlgoBase.__init__(self, track_to_comet)
 
-        self.svt_hybrid = SVT_INIT_SVD_ALS_SGD(verbal=True)
+    def __init__(self, params: argparse.Namespace):
+        AlgoBase.__init__(self)
+        svt_params = SVT_INIT_SVD_ALS_SGD.default_params()
+        self.svt_hybrid = SVT_INIT_SVD_ALS_SGD(svt_params)
         self.gmf = None
-
 
         self.use_pretrained_svd = True
 
-        self.device = device
-        self.epochs = epochs
-        self.batch_size = batch_size
-        self.lr = learning_rate
+        self.device = params.device
+        self.epochs = params.epochs
+        self.batch_size = params.batch_size
+        self.lr = params.learning_rate
 
         self.fold = '_no_cv'
         self.svt_precompute_path = None
 
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(epochs=10, batch_size=256, learning_rate=0.01, device="cpu",
+                                  verbal=True)
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         # path of the pretrained model (if it exists)
         self.svt_precompute_path = data_processing.get_project_directory() + f'/data/phase2_pretrained_model/svt_advanced_{self.svt_hybrid.k}{self.fold}.pickle'
-
         if not self.use_pretrained_svd:
             self.svt_hybrid.fit(train_data)
             self.svt_hybrid.save(self.svt_precompute_path)  # export model
 
-
         svd = pickle.load(open(self.svt_precompute_path, 'rb'))
-        self.gmf = GMF(
-                svd.pu,
-                svd.qi,
-                svd.bu,
-                svd.bi,
-                num_epochs=self.epochs,
-                batch_size=self.batch_size,
-                learning_rate=self.lr,
-                device=self.device,
-            )
+
+        self.gmf = GMF(user_embedding=svd.pu,
+                       movie_embedding=svd.qi,
+                       user_bias=svd.bu,
+                       movie_bias=svd.bi,
+                       epochs=self.epochs,
+                       batch_size=self.batch_size,
+                       learning_rate=self.lr,
+                       device=self.device)
 
         self.gmf.fit(train_data=train_data, test_data=test_data)
 
@@ -82,17 +86,21 @@ class AuMF(AlgoBase):
             val_data = DatasetWrapper(val_users, val_movies, val_predictions)
 
             # load initialization matrix for the svt-model
-            self.svt_hybrid.svt_init_matrix_path = '/data/phase1_precomputed_matrix/' + self.svt_hybrid.cv_svt_matrix_filenames[counter]
+            self.svt_hybrid.svt_init_matrix_path = '/data/phase1_precomputed_matrix/' + \
+                                                   self.svt_hybrid.cv_svt_matrix_filenames[counter]
 
             # fit
             self.fit(train_data=train_data, test_data=val_data)
 
             # predict and compute scores
             predictions = self.predict(val_users, val_movies)
+
+            data_processing.create_validation_file(users=val_users, movies=val_movies,
+                                                   ground_truth_predicitons=val_predictions, predictions=predictions,
+                                                   name=f'aumf_predictions_fold{counter}')
             rmse = data_processing.get_score(predictions, val_predictions)
 
-            rmses.append(data_processing.get_score(predictions, val_predictions))
-            print(f"rsme: {rmse}")
+            rmses.append(rmse)
 
             # update counters
             counter += 1
@@ -100,16 +108,8 @@ class AuMF(AlgoBase):
 
         bar.close()
 
-        mean_rmse = np.mean(rmses)
-        # track mean rmses to comet if we are tracking
-        if self.track_on_comet:
-            self.comet_experiment.log_metrics(
-                {
-                    "root_mean_squared_error": mean_rmse
-                }
-            )
-        print(rmses)
         return rmses
+
 
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
@@ -117,8 +117,8 @@ if __name__ == '__main__':
     epochs = 43
 
     submit = False
-
-    aumf = AuMF()
+    params = AuMF.default_params()
+    aumf = AuMF(params)
 
     if submit:
         data = DatasetWrapper(data_pd)

@@ -6,7 +6,7 @@ from surprise import NormalPredictor
 
 
 class SurpriseBaselines(AlgoBase):
-    """ Prediction based on dimensionality reduction through singular value decomposition """
+    """ Run surprise baselines """
 
     def __init__(self, predictor=NormalPredictor(), track_to_comet=False, method_name=None, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline"):
         AlgoBase.__init__(self, method_name=predictor.__class__.__name__ + "_surprise", track_to_comet=False, api_key="rISpuwcLQoWU6qan4jRCAPy5s", projectname="cil-experiments", workspace="veroniquek", tag="baseline")

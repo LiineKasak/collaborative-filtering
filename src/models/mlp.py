@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from .algobase import AlgoBase
+from models.algobase import AlgoBase
 from utils.dataset import DatasetWrapper
 from utils.fitting import train
 from ray import tune
