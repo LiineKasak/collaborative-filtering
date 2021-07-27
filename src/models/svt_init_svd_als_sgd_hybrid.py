@@ -1,3 +1,5 @@
+import argparse
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -20,16 +22,14 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
     Running SGD on SVD on pu qi paramteres only. Baseline parameters bu and bi are preloaded
     and were calculated with ALS. Init matrix is result of Singular Value Thresholding algorithm.
     """
+    def __init__(self, params: argparse.Namespace):
+        AlgoBase.__init__(self)
 
-    def __init__(self, k_singular_values=12, epochs=43, learning_rate=0.001, regularization=0.05, verbal=False,
-                 track_to_comet=False):
-        AlgoBase.__init__(self, track_to_comet)
-
-        self.k = k_singular_values  # number of singular values to use
-        self.epochs = epochs
-        self.learning_rate = learning_rate
-        self.regularization = regularization
-        self.verbal = verbal
+        self.k = params.k_singular_values  # number of singular values to use
+        self.epochs = params.epochs
+        self.learning_rate = params.learning_rate
+        self.regularization = params.regularization
+        self.verbal = params.verbal
 
         self.matrix = np.zeros((self.number_of_users, self.number_of_movies))
         self.reconstructed_matrix = np.zeros((self.number_of_users, self.number_of_movies))
@@ -53,6 +53,11 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
 
         self.mu = 0
 
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(k_singular_values=12, epochs=43, learning_rate=0.001, regularization=0.05,
+                                  verbal=False)
+
     def _update_reconstructed_matrix(self):
         dot_product = self.pu.dot(self.qi.T)
         user_biases_matrix = np.reshape(self.bu, (self.number_of_users, 1))
@@ -65,7 +70,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
 
         for i in range(len(train_user_ids)):
             ur[train_user_ids[i]].append((train_movie_ids[i], train_ratings[i]))
-    
+
         for i in range(len(train_movie_ids)):
             ir[train_movie_ids[i]].append((train_user_ids[i], train_ratings[i]))
 
@@ -82,7 +87,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
                     item_idx = ur[u][idx][0]
                     rating = ur[u][idx][1]
                     sum_u += rating - self.bi[item_idx]
-                self.bu[u] = (sum_u/(reg_u+len(ur[u])))
+                self.bu[u] = (sum_u / (reg_u + len(ur[u])))
 
             for i in ir:
                 sum_i = 0
@@ -90,7 +95,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
                     user_idx = ir[i][idx][0]
                     rating = ir[i][idx][1]
                     sum_i += rating - self.bu[user_idx]
-                self.bi[i] = (sum_i/(reg_i+len(ir[i])))
+                self.bi[i] = (sum_i / (reg_i + len(ir[i])))
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         users, movies, ground_truth = train_data.users, train_data.movies, train_data.ratings
@@ -98,7 +103,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
         with open(self.directory_path + self.svt_init_matrix_path, 'rb') as f:
             self.svt_matrix = np.load(f, allow_pickle=True)
             # Yk = np.load(f, allow_pickle=True) #this is not used but in the file since it was needed for svt
-        
+
         self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
 
         (ur, ir) = self.create_adjacency_lists(users, movies, ground_truth)
@@ -145,7 +150,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
         predictions[predictions > 5] = 5
         predictions[predictions < 1] = 1
         return predictions
-    
+
     def cross_validate(self, data_pd, folds=5, random_state=42):
         """ Run Crossvalidation using kfold, taking a pandas-dataframe of the raw data as input
             (as it is read in from the .csv file) """
@@ -153,7 +158,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
 
         rmses = []
 
-        bar = tqdm(total=folds,  desc='cross_validation')
+        bar = tqdm(total=folds, desc='cross_validation')
         counter = 0
         for train_index, test_index in kfold.split(data_pd):
             train_users, train_movies, train_predictions = data_processing.extract_users_items_predictions(
@@ -200,7 +205,7 @@ if __name__ == '__main__':
         data = DatasetWrapper(data_pd)
         svt_init_svd_hybrid.fit(data)
         # svt_init_svd_hybrid.predict_for_submission(f'svt_init_svd_als_sgd_k{k}_{epochs}')
-        svt_init_svd_hybrid.save(f'models/submit/svt_advanced_{k}.pickle') # export model
+        svt_init_svd_hybrid.save(f'models/submit/svt_advanced_{k}.pickle')  # export model
         # instead of fitting for all data, fit only for cross-validation fold
         # split on panda dataframe and give it a fold?
     else:
