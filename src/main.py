@@ -10,10 +10,11 @@ from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
 parser.add_argument('model', type=str, help='selected model', choices=['aumf', 'svd_sgd', 'log_reg', 'knn'])  # TODO
-parser.add_argument('--train_split', '-split', type=float, default=0.8,
-                    help='Train split size, 0 < split <= 1. 1 for no validation set. (Default: 0.8)')
-parser.add_argument('--submission', type=str, help='Submission file name if should be created.')
-parser.add_argument('--cross_validate', '-cv', action='store_true', help='Flag for cross-validation.')
+parser.add_argument('--mode', '-m', type=str, choices=['val', 'cv', 'submit'],
+                    help='mode: validate, cross-validate (cv) or train for submission.')
+parser.add_argument('--train_split', '-split', type=float, default=0.9)
+parser.add_argument('--folds', '-f', type=int, default=5)
+parser.add_argument('--submission', type=str, default='submission', help='Submission file name if mode=\'submit\'.')
 parser.add_argument('--verbal', '-v', type=bool)
 
 # often used arguments
@@ -59,14 +60,13 @@ model = get_model(args.model)
 data_pd = data_processing.read_data()
 data = DatasetWrapper(data_pd)
 
-if args.cross_validate:
-    nr_folds = int(1. / (1. - args.train_split))
-    rmses = model.cross_validate(data_pd, nr_folds)
+if args.mode == 'cv' and args.folds > 0:
+    rmses = model.cross_validate(data_pd, args.folds)
     print(f'Cross-validation RMSEs: {rmses}')
     print(f'Average RMSE: {np.mean(np.array(rmses))}')
 
-elif 0 < args.train_split < 1:
-    train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
+elif args.mode == 'val' and 0 < args.train_split < 1:
+    train_pd, test_pd = train_test_split(data_pd, train_size=args.train_split, random_state=42)
     train_data = DatasetWrapper(train_pd)
     model.fit(train_data)
 
@@ -74,8 +74,8 @@ elif 0 < args.train_split < 1:
     predictions_valid = model.predict(users_valid, movies_valid)
     rmse = data_processing.rmse(predictions_valid, predictions_true)
     print("Validation RMSE: ", rmse)
-elif args.train_split == 1:
-    model.fit(data)
 
+elif args.mode == 'submit':
+    model.fit(data)
     if args.submission is not None:
         model.predict_for_submission(args.submission)
