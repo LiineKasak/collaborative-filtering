@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
 parser.add_argument('model', type=str, help='selected model', choices=['aumf', 'svd_sgd', 'log_reg', 'knn'])  # TODO
 parser.add_argument('--train_split', '-split', type=float, default=0.8,
-                    help='Train split size, 0 < split <= 1. 1 for no validation set. (Default: 0.9)')
+                    help='Train split size, 0 < split <= 1. 1 for no validation set. (Default: 0.8)')
 parser.add_argument('--submission', type=str, help='Submission file name if should be created.')
 parser.add_argument('--cross_validate', '-cv', action='store_true', help='Flag for cross-validation.')
 parser.add_argument('--verbal', '-v', type=bool)
@@ -26,7 +26,7 @@ parser.add_argument('--device', '-d', type=str)
 # model-specific parameters
 parser.add_argument('--k_singular_values', '-k', type=int)
 parser.add_argument('--enable_bias', '-bias', type=bool)
-parser.add_argument('--n_neighbors', '-n', type=int)    # KNN neighbors
+parser.add_argument('--n_neighbors', '-n', type=int)  # KNN neighbors
 # TODO add other custom params from different models
 
 args = parser.parse_args()
@@ -40,8 +40,7 @@ def get_params(params, default_params):
     return params
 
 
-
-def get_model(model : str):
+def get_model(model: str):
     if model == 'svd_sgd':
         return SVD_SGD(get_params(args, SVD_SGD.default_params()))
     elif model == 'aumf':
@@ -65,6 +64,7 @@ if args.cross_validate:
     rmses = model.cross_validate(data_pd, nr_folds)
     print(f'Cross-validation RMSEs: {rmses}')
     print(f'Average RMSE: {np.mean(np.array(rmses))}')
+
 elif 0 < args.train_split < 1:
     train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
     train_data = DatasetWrapper(train_pd)
