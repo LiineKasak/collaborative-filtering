@@ -2,15 +2,14 @@ import argparse
 import numpy as np
 from models.svd_sgd import SVD_SGD
 from models.aumf import AuMF
-from models.mlp import MLP
-from models.gmf import GMF
+from models.log_reg import LogisticRegression
 from models.knn import KNNImprovedSVDEmbeddings
 from utils import data_processing
 from utils.dataset import DatasetWrapper
 from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
-parser.add_argument('model', type=str, help='selected model', choices=['aumf', 'svd_sgd'])  # TODO
+parser.add_argument('model', type=str, help='selected model', choices=['aumf', 'svd_sgd', 'log_reg', 'knn'])  # TODO
 parser.add_argument('--train_split', '-split', type=float, default=0.9,
                     help='Train split size, 0 < split <= 1. 1 for no validation set. (Default: 0.9)')
 parser.add_argument('--submission', type=str, help='Submission file name if should be created.')
@@ -22,6 +21,7 @@ parser.add_argument('--epochs', '-e', type=int)
 parser.add_argument('--learning_rate', '-lr', type=float)
 parser.add_argument('--regularization', '-r', type=float)
 parser.add_argument('--batch_size', '-b', type=int)
+parser.add_argument('--device', type=str)
 
 # model-specific parameters
 parser.add_argument('--k_singular_values', '-k', type=int)
@@ -43,8 +43,8 @@ def get_params(params, default_params):
 model_dict = {
     'svd_sgd': SVD_SGD(get_params(args, SVD_SGD.default_params())),
     'aumf': AuMF(get_params(args, AuMF.default_params())),
-    'gmf': SVD_SGD(get_params(args, SVD_SGD.default_params())),
-    'mlp': AuMF(get_params(args, AuMF.default_params())),
+    'knn': KNNImprovedSVDEmbeddings(get_params(args, SVD_SGD.default_params())),
+    'log_reg': LogisticRegression(get_params(args, AuMF.default_params())),
     # TODO: add models
 }
 

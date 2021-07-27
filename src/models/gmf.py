@@ -1,3 +1,5 @@
+import argparse
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -23,23 +25,21 @@ class GMF(AlgoBase):
             product = torch.mul(users_embedding, movies_embedding)
             return torch.squeeze(self.weights(product)) + self.bias_users[users] + self.bias_movies[movies]
 
-    def __init__(
-            self,
-            user_embedding,
-            movie_embedding,
-            user_bias,
-            movie_bias,
-            num_epochs,
-            batch_size,
-            learning_rate,
-            device,
-    ):
+    def __init__(self, user_embedding,
+                        movie_embedding,
+                        user_bias,
+                        movie_bias,
+                        epochs,
+                        batch_size,
+                        learning_rate,
+                        device):
+        AlgoBase.__init__(self)
         super().__init__()
         self.user_embedding = user_embedding
         self.movie_embedding = movie_embedding
         self.user_bias = user_bias
         self.movie_bias = movie_bias
-        self.num_epochs = num_epochs
+        self.num_epochs = epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.device = device
@@ -115,7 +115,7 @@ if __name__ == '__main__':
             svd.qi,
             svd.bu,
             svd.bi,
-            num_epochs=args.epochs,
+            epochs=args.epochs,
             batch_size=args.batch_size,
             learning_rate=args.lr,
             device=device,

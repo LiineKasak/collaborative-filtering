@@ -17,6 +17,7 @@ class AuMF(AlgoBase):
 
     def __init__(self, params: argparse.Namespace):
         AlgoBase.__init__(self)
+        print(params)
 
         svt_params = SVT_INIT_SVD_ALS_SGD.default_params()
         self.svt_hybrid = SVT_INIT_SVD_ALS_SGD(svt_params)
@@ -24,38 +25,38 @@ class AuMF(AlgoBase):
 
         self.use_pretrained_svd = True
 
-        self.device = 'cpu'
+        self.device = params.device
         self.epochs = params.epochs
         self.batch_size = params.batch_size
         self.lr = params.learning_rate
 
-        self.fold = '_no_cv'
+        self.fold = '_fold0'
         self.svt_precompute_path = None
 
     @staticmethod
     def default_params():
-        return argparse.Namespace(epochs=75, learning_rate=0.001, regularization=0.05,
-                                  verbal=True, enable_bias=True)
+        print("reutrning AUMF default parameters")
+        return argparse.Namespace(epochs=10, batch_size=256, learning_rate=0.01, device="cpu",
+                                  verbal=True)
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         # path of the pretrained model (if it exists)
         self.svt_precompute_path = data_processing.get_project_directory() + f'/data/phase2_pretrained_model/svt_advanced_{self.svt_hybrid.k}{self.fold}.pickle'
-
+        print(self.svt_precompute_path)
         if not self.use_pretrained_svd:
             self.svt_hybrid.fit(train_data)
             self.svt_hybrid.save(self.svt_precompute_path)  # export model
 
         svd = pickle.load(open(self.svt_precompute_path, 'rb'))
-        self.gmf = GMF(
-            svd.pu,
-            svd.qi,
-            svd.bu,
-            svd.bi,
-            num_epochs=self.epochs,
-            batch_size=self.batch_size,
-            learning_rate=self.lr,
-            device=self.device,
-        )
+
+        self.gmf = GMF(user_embedding=svd.pu,
+                        movie_embedding=svd.qi,
+                        user_bias=svd.bu,
+                        movie_bias=svd.bi,
+                        epochs=self.epochs,
+                        batch_size=self.batch_size,
+                        learning_rate=self.lr,
+                        device=self.device)
 
         print("Fitting the GMF")
         self.gmf.fit(train_data=train_data, test_data=test_data)
@@ -131,8 +132,8 @@ if __name__ == '__main__':
     epochs = 43
 
     submit = False
-
-    aumf = AuMF()
+    params = AuMF.default_params()
+    aumf = AuMF(params)
 
     if submit:
         data = DatasetWrapper(data_pd)
