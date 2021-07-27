@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
 parser.add_argument('model', type=str, help='selected model', choices=['aumf', 'svd_sgd', 'log_reg', 'knn'])  # TODO
-parser.add_argument('--train_split', '-split', type=float, default=0.9,
+parser.add_argument('--train_split', '-split', type=float, default=0.8,
                     help='Train split size, 0 < split <= 1. 1 for no validation set. (Default: 0.9)')
 parser.add_argument('--submission', type=str, help='Submission file name if should be created.')
 parser.add_argument('--cross_validate', '-cv', action='store_true', help='Flag for cross-validation.')
