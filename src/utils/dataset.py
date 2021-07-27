@@ -1,4 +1,5 @@
 import numpy as np
+import warnings
 
 from utils import data_processing
 import pandas as pd
@@ -41,11 +42,19 @@ class DatasetWrapper:
         self.movies_per_user_representation()
         self.users_per_movie_representation()
 
-        self.movie_means = np.nanmean(self.data_matrix, axis=0)
-        self.user_means = np.nanmean(self.data_matrix, axis=1)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            self.movie_means = np.nanmean(self.data_matrix, axis=0)
+            self.user_means = np.nanmean(self.data_matrix, axis=1)
 
-        self.movie_bias = np.zeros(self.movie_means.shape)     #self.movie_means - np.mean(self.movie_means)
-        self.user_bias = np.zeros(self.user_means.shape)        #self.user_means - np.mean(self.user_means)
+            self.movie_variance = np.nanvar(self.data_matrix, axis=0)
+            self.user_variance = np.nanvar(self.data_matrix, axis=1)
+
+        self.movie_bias = self.movie_means - np.mean(self.movie_means)
+        self.user_bias = self.user_means - np.mean(self.user_means)
+
+        self.times_watched = np.sum(self.mask, axis=0)
+        self.num_movies_watched = np.sum(self.mask, axis=1)
 
 
 
