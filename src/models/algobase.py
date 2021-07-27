@@ -6,7 +6,7 @@ from comet_ml import Experiment
 from utils.dataset import DatasetWrapper
 import pickle
 
-from src.utils import data_processing, dataset
+from utils import data_processing, dataset
 
 
 class AlgoBase():
@@ -43,6 +43,10 @@ class AlgoBase():
             )
             self.comet_experiment.set_name(self.method_name)
             self.comet_experiment.add_tag(self.tag)
+
+    def default_params(self):
+        """Default parameters for model."""
+        raise NotImplementedError("default_params-function has to be implemented! ")
 
     def predict(self, users, movies):
         """ Predict ratings for a given set of users and movies """

@@ -1,14 +1,13 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
-from src.utils import data_processing
-from src.models.algobase import AlgoBase
-from src.models.svd import SVD
+from utils import data_processing
+from models.algobase import AlgoBase
+from models.svd import SVD
 from torch.utils.tensorboard import SummaryWriter
 import time
 from tqdm import tqdm
 from utils.dataset import DatasetWrapper
-
-EPSILON = 1e-5
+import argparse
 
 
 class SVD_SGD(AlgoBase):
@@ -18,15 +17,14 @@ class SVD_SGD(AlgoBase):
     https://surprise.readthedocs.io/en/stable/matrix_factorization.html#matrix-factorization-based-algorithms
     """
 
-    def __init__(self, k_singular_values=17, epochs=100, learning_rate=0.001, regularization=0.05, verbal=False,
-                 enable_bias=True, track_to_comet=False):
-        AlgoBase.__init__(self, track_to_comet)
+    def __init__(self, params: argparse.Namespace):
+        AlgoBase.__init__(self)
 
-        self.k = k_singular_values  # number of singular values to use
-        self.epochs = epochs
-        self.learning_rate = learning_rate
-        self.regularization = regularization
-        self.verbal = verbal
+        self.k = params.k_singular_values  # number of singular values to use
+        self.epochs = params.epochs
+        self.learning_rate = params.learning_rate
+        self.regularization = params.regularization
+        self.verbal = params.verbal
 
         self.matrix = np.zeros((self.number_of_users, self.number_of_movies))
         self.reconstructed_matrix = np.zeros((self.number_of_users, self.number_of_movies))
@@ -37,7 +35,12 @@ class SVD_SGD(AlgoBase):
         self.bi = np.zeros(self.number_of_movies)  # item bias
         self.mu = 0
 
-        self.enable_bias = enable_bias
+        self.enable_bias = params.enable_bias
+
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(k_singular_values=12, epochs=75, learning_rate=0.001, regularization=0.05,
+                                  verbal=True, enable_bias=True)
 
     def _update_reconstructed_matrix(self):
         dot_product = self.pu.dot(self.qi.T)
@@ -46,14 +49,12 @@ class SVD_SGD(AlgoBase):
         self.reconstructed_matrix = dot_product + user_biases_matrix + movie_biases_matrix + self.mu
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
-        users, movies, ground_truth = train_data.users, train_data.movies,train_data.ratings
+        users, movies, ground_truth = train_data.users, train_data.movies, train_data.ratings
         self.matrix, _ = data_processing.get_data_mask(users, movies, ground_truth)
-        # normalized_matrix = data_processing.normalize_by_variance(self.matrix)
-        # self.pu, self.qi = SVD.get_embeddings(self.k, normalized_matrix)
+
         self.pu, self.qi = SVD.get_embeddings(self.k, self.matrix)
 
         indices = np.arange(len(users))
-        # global_mean = np.mean(self.matrix[np.nonzero(self.matrix)])
 
         time_string = time.strftime("%Y%m%d-%H%M%S")
         log_dir = f'./logs/SGD_{time_string}'
@@ -99,21 +100,3 @@ class SVD_SGD(AlgoBase):
         predictions[predictions < 1] = 1
         return predictions
 
-
-if __name__ == '__main__':
-    data_pd = data_processing.read_data()
-    k = 10
-    epochs = 100
-    sgd = SVD_SGD(k_singular_values=k, epochs=epochs, verbal=True)
-
-    submit = False
-
-    if submit:
-        data = DatasetWrapper(data_pd)
-        sgd.fit(data)
-        sgd.predict_for_submission(f'svd_sgd_norm_k{k}_{epochs}')
-    else:
-        train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
-        train_data, test_data = DatasetWrapper(train_pd), DatasetWrapper(test_pd)
-        users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
-        sgd.fit(train_data, test_data)

@@ -8,7 +8,6 @@ from ray import tune
 
 
 class GMF(AlgoBase):
-
     class Model(nn.Module):
         def __init__(self, user_embedding, movie_embedding, user_bias, movie_bias):
             super().__init__()
@@ -79,6 +78,7 @@ class GMF(AlgoBase):
                     batch_size=config['batch_size'],
                 )
                 tune.report(rmse=rmse)
+
         return tune.run(
             tune.with_parameters(do_train, train_data=train_data, test_data=test_data),
             mode='min',
@@ -102,8 +102,7 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     from utils.experiment import run_experiment
     import pickle
-    from models.svt_svd import SVT_SVD
-    from models.svt_init_svd_als_sgd_hybrid import SVT_INIT_SVD_ALS_SGD
+
 
     def parser_setup(parser: ArgumentParser):
         parser.add_argument('--svd', type=str, help='SVD pickle')
