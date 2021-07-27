@@ -37,10 +37,6 @@ class SVT(AlgoBase):
 
 
     def _update_reconstructed_matrix(self):
-        # decompose into smaller rank matrix via SVD since usually it converges
-        # to a rank that is around ~400. I think this makes it non-convex again
-        # so it is defeating the purpose but big shrinkage values also converge
-        # super slowly
         U, s, Vt = np.linalg.svd(self.Xopt, full_matrices=False)
 
         S = np.zeros((self.number_of_movies, self.number_of_movies))
@@ -103,12 +99,59 @@ class SVT(AlgoBase):
         predictions[predictions > 5] = 5
         predictions[predictions < 1] = 1
         return predictions
+    
+    def cross_validate(self, data_pd, folds=5, random_state=42):
+        """ Run Crossvalidation using kfold, taking a pandas-dataframe of the raw data as input
+            (as it is read in from the .csv file) """
+        kfold = KFold(n_splits=folds, shuffle=True, random_state=random_state)
+
+        rmses = []
+        counter = 0
+
+        cv_svt_matrix_filenames = ['svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-005714.npy',
+        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-080627.npy',
+        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-151440.npy',
+        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-222641.npy',
+        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210724-054423.npy']
+
+        bar = tqdm(total=folds,  desc='cross_validation')
+        
+        for train_index, test_index in kfold.split(data_pd):
+            train_users, train_movies, train_predictions = data_processing.extract_users_items_predictions(
+                data_pd.iloc[train_index])
+            val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(
+                data_pd.iloc[test_index])
+
+            with open('/data/phase1_precomputed_matrix/' + cv_svt_matrix_filenames[counter], 'rb') as f:
+                self.Xopt =  np.load(f, allow_pickle=True)
+                self.Y0 = np.load(f, allow_pickle=True)
+
+            self._update_reconstructed_matrix()
+            counter += 1
+            
+            predictions = self.predict(val_users, val_movies)
+            rmses.append(data_processing.get_score(predictions, val_predictions))
+
+            bar.update()
+
+        bar.close()
+
+        mean_rmse = np.mean(rmses)
+        # track mean rmses to comet if we are tracking
+        if self.track_on_comet:
+            self.comet_experiment.log_metrics(
+                {
+                    "root_mean_squared_error": mean_rmse
+                }
+            )
+        print(rmses)
+        return rmses
 
 
 if __name__ == '__main__':
     data_pd = data_processing.read_data()
-    shrink_val = 200000
-    max_it= 1000
+    shrink_val = 100000
+    max_it= 500
     k_singular_values = 12
     svt = SVT(k_singular_values=k_singular_values, shrink_val=shrink_val, max_it=max_it)
 
@@ -119,7 +162,5 @@ if __name__ == '__main__':
         svt.fit(users, movies, predictions)
         svt.predict_for_submission(f'svt{shrink_val}_{max_it}')
     else:
-        train_pd, test_pd = train_test_split(data_pd, train_size=0.9, random_state=42)
-        users, movies, predictions = data_processing.extract_users_items_predictions(train_pd)
-        val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(test_pd)
-        svt.fit(users, movies, predictions, val_users, val_movies, val_predictions)
+        rmses = svt.cross_validate(data_pd)
+        print("RMSES of ", svt.method_name, "\n", rmses, "\n")
