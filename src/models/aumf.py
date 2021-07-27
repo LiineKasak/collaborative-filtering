@@ -34,7 +34,7 @@ class AuMF(AlgoBase):
 
     @staticmethod
     def default_params():
-        return argparse.Namespace(epochs=10, batch_size=256, learning_rate=0.01, device="cpu",
+        return argparse.Namespace(epochs=5, batch_size=256, learning_rate=0.01, device="cpu",
                                   verbal=True)
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
