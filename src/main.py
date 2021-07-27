@@ -21,7 +21,7 @@ parser.add_argument('--epochs', '-e', type=int)
 parser.add_argument('--learning_rate', '-lr', type=float)
 parser.add_argument('--regularization', '-r', type=float)
 parser.add_argument('--batch_size', '-b', type=int)
-parser.add_argument('--device', type=str)
+parser.add_argument('--device', '-d', type=str)
 
 # model-specific parameters
 parser.add_argument('--k_singular_values', '-k', type=int)
@@ -40,15 +40,28 @@ def get_params(params, default_params):
     return params
 
 
-model_dict = {
-    'svd_sgd': SVD_SGD(get_params(args, SVD_SGD.default_params())),
-    'aumf': AuMF(get_params(args, AuMF.default_params())),
-    'knn': KNNImprovedSVDEmbeddings(get_params(args, KNNImprovedSVDEmbeddings.default_params())),
-    'log_reg': LogisticRegression(get_params(args, LogisticRegression.default_params())),
-    # TODO: add models
-}
 
-model = model_dict[args.model]
+def get_model(model : str):
+    if model == 'svd_sgd':
+        return SVD_SGD(get_params(args, SVD_SGD.default_params()))
+    elif model == 'aumf':
+        return AuMF(get_params(args, AuMF.default_params()))
+    elif model == 'knn':
+        return KNNImprovedSVDEmbeddings(get_params(args, KNNImprovedSVDEmbeddings.default_params()))
+    elif model == 'log_reg':
+        return LogisticRegression(get_params(args, LogisticRegression.default_params()))
+    # TODO: add models
+
+    else:
+        print("This model does not exist.")
+
+
+print('model: ', args.model)
+print('before adding params: ', args)
+print('default params: ', AuMF.default_params())
+print('after adding params: ', get_params(args, AuMF.default_params()))
+model = get_model(args.model)
+print('model: ', model)
 data_pd = data_processing.read_data()
 data = DatasetWrapper(data_pd)
 

@@ -25,8 +25,12 @@ class AuMF(AlgoBase):
 
         self.device = params.device
         self.epochs = params.epochs
+
         self.batch_size = params.batch_size
         self.lr = params.learning_rate
+
+        print("epochs:", self.epochs)
+        print("lr: ", self.lr)
 
         self.fold = '_no_cv'
         self.svt_precompute_path = None

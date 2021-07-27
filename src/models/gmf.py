@@ -26,13 +26,13 @@ class GMF(AlgoBase):
             return torch.squeeze(self.weights(product)) + self.bias_users[users] + self.bias_movies[movies]
 
     def __init__(self, user_embedding,
-                        movie_embedding,
-                        user_bias,
-                        movie_bias,
-                        epochs,
-                        batch_size,
-                        learning_rate,
-                        device):
+                 movie_embedding,
+                 user_bias,
+                 movie_bias,
+                 epochs,
+                 batch_size,
+                 learning_rate,
+                 device):
         AlgoBase.__init__(self)
         super().__init__()
         self.user_embedding = user_embedding
