@@ -106,22 +106,3 @@ class AuMF(AlgoBase):
         bar.close()
 
         return rmses
-
-
-if __name__ == '__main__':
-    data_pd = data_processing.read_data()
-    k = 12
-    epochs = 43
-
-    submit = False
-    params = AuMF.default_params()
-    aumf = AuMF(params)
-
-    if submit:
-        data = DatasetWrapper(data_pd)
-        aumf.fit(data)
-
-        aumf.predict_for_submission('aumf')
-    else:
-        rmses = aumf.cross_validate(data_pd)
-        print("RMSES of ", aumf.method_name, "\n", rmses, "\n")
