@@ -43,7 +43,6 @@ class TorchModelTrainer(AlgoBase):
         unknown_values_pd = pd.read_csv(data_processing.get_project_directory() + '\data\svd_sgd_valid_seed42.csv.zip')
         return data_processing.extract_users_items_predictions(unknown_values_pd)
 
-
     def build_model(self):
         raise NotImplementedError("build_model-function has to be implemented! ")
 
@@ -56,7 +55,7 @@ class TorchModelTrainer(AlgoBase):
     def fit(self, data: DatasetWrapper):
         self.train(data)
 
-    def train(self, data: DatasetWrapper, val_data: DatasetWrapper=None):
+    def train(self, data: DatasetWrapper, val_data: DatasetWrapper = None):
         self.rebuild_model()
         train_dataloader = self.get_dataloader(data)
 
