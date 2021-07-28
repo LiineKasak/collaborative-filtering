@@ -24,7 +24,7 @@ class SVT(AlgoBase):
     def __init__(self, params: argparse.Namespace):
         AlgoBase.__init__(self)
 
-        self.max_it = params.max_it
+        self.max_it = params.epochs
         self.shrink_val = params.shrink_val
         self.learning_rate = params.learning_rate
         self.verbal = params.verbal
@@ -39,7 +39,7 @@ class SVT(AlgoBase):
 
     @staticmethod
     def default_params():
-        return argparse.Namespace(k_singular_values=12, shrink_val=100000, max_it=2000, learning_rate=1.99,
+        return argparse.Namespace(k_singular_values=12, shrink_val=100000, epochs=2000, learning_rate=1.99,
                                   verbal=False)
 
     def _update_reconstructed_matrix(self):
