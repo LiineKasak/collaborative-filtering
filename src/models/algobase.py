@@ -7,7 +7,7 @@ import pickle
 from utils import data_processing, dataset
 
 
-class AlgoBase():
+class AlgoBase:
     """ Base for all predictors, every predictor should inherit from this and implement
         (at least) a fit and predict method """
 
