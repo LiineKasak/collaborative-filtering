@@ -19,7 +19,8 @@ class AlgoBase():
 
         self.method_name = self.__class__.__name__
 
-    def default_params(self):
+    @staticmethod
+    def default_params():
         """Default parameters for model."""
         raise NotImplementedError("default_params-function has to be implemented! ")
 

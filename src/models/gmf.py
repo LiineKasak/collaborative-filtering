@@ -3,6 +3,7 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
 from models.algobase import AlgoBase
 from utils.dataset import DatasetWrapper
 from utils.fitting import train
@@ -25,6 +26,10 @@ class GMF(AlgoBase):
             product = torch.mul(users_embedding, movies_embedding)
             return torch.squeeze(self.weights(product)) + self.bias_users[users] + self.bias_movies[movies]
 
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(epochs=2, batch_size=256, learning_rate=0.01, device="cpu")
+
     def __init__(self, user_embedding,
                  movie_embedding,
                  user_bias,
@@ -32,13 +37,31 @@ class GMF(AlgoBase):
                  epochs,
                  batch_size,
                  learning_rate,
-                 device):
+                 device,
+                 user_embedding_dim=12,
+                 movie_embedding_dim=12):
         AlgoBase.__init__(self)
         super().__init__()
-        self.user_embedding = user_embedding
-        self.movie_embedding = movie_embedding
-        self.user_bias = user_bias
-        self.movie_bias = movie_bias
+        if user_embedding is None:
+            self.user_embedding = np.random.normal(size=(self.number_of_users, user_embedding_dim))
+        else:
+            self.user_embedding = user_embedding
+
+        if movie_embedding is None:
+            self.movie_embedding = np.random.normal(size=(self.number_of_movies, movie_embedding_dim))
+        else:
+            self.movie_embedding = movie_embedding
+
+        if user_bias is None:
+            self.user_bias = np.zeros(self.number_of_users)
+        else:
+            self.user_bias = user_bias
+
+        if movie_bias is None:
+            self.movie_bias = np.zeros(self.number_of_movies)
+        else:
+            self.movie_bias = movie_bias
+
         self.num_epochs = epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -96,34 +119,3 @@ class GMF(AlgoBase):
 
     def save(self, filename: str):
         torch.save(self.model, filename)
-
-
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-    from utils.experiment import run_experiment
-    import pickle
-
-
-    def parser_setup(parser: ArgumentParser):
-        parser.add_argument('--svd', type=str, help='SVD pickle')
-
-
-    def model_factory(args, device):
-        svd = pickle.load(open(args.svd, 'rb'))
-        return GMF(
-            svd.pu,
-            svd.qi,
-            svd.bu,
-            svd.bi,
-            epochs=args.epochs,
-            batch_size=args.batch_size,
-            learning_rate=args.lr,
-            device=device,
-        )
-
-
-    run_experiment(
-        'GMF',
-        parser_setup,
-        model_factory,
-    )
