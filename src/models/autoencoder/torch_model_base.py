@@ -1,14 +1,13 @@
 import time
-import numpy as np
 import pandas as pd
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from src.utils import data_processing
-from src.models.algobase import AlgoBase
-from src.models.svd_sgd import SVD_SGD
+from utils import data_processing
+from utils.dataset import DatasetWrapper
+from models.algobase import AlgoBase
 
 
 class TorchModelTrainer(AlgoBase):
@@ -39,6 +38,7 @@ class TorchModelTrainer(AlgoBase):
                                           weight_decay=self.regularization)
 
     def get_unknown(self):
+        # results from SVD_SGD
         unknown_values_pd = pd.read_csv(data_processing.get_project_directory() + '\data\svd_sgd_valid_seed42.csv.zip')
         return data_processing.extract_users_items_predictions(unknown_values_pd)
 
@@ -52,15 +52,12 @@ class TorchModelTrainer(AlgoBase):
     def train_step(self, batch, re_feeding=False):
         raise NotImplementedError("train_step-function has to be implemented! ")
 
-    def fit(self, users, movies, predictions):
-        self.train((users, movies, predictions))
+    def fit(self, data: DatasetWrapper):
+        self.train(data)
 
-    def train(self, train_data: tuple, validation_data: tuple = None):
-        # data as tuple (users, movies, predictions)
-        if len(train_data) != 3:
-            raise AttributeError("train_data has to be a tuple consisting of users, movies, predictions")
+    def train(self, data: DatasetWrapper, val_data: DatasetWrapper=None):
         self.rebuild_model()
-        train_dataloader = self.get_dataloader(train_data)
+        train_dataloader = self.get_dataloader(data)
 
         time_string = time.strftime("%Y%m%d-%H%M%S")
         log_dir = f'./logs/{self.model_name}_{time_string}'
@@ -78,14 +75,13 @@ class TorchModelTrainer(AlgoBase):
                     pbar.update(1)
                 step += 1
 
-                predictions = self.predict(train_data[0], train_data[1])
-                rmse = data_processing.get_score(predictions, train_data[2])
+                predictions = self.predict(data.users, data.movies)
+                rmse = data_processing.get_score(predictions, data.ratings)
                 writer.add_scalar('rmse', rmse, step)
 
-                if validation_data:
-                    valid_users, valid_movies, valid_predictions = validation_data
-                    predictions = self.predict(valid_users, valid_movies)
-                    reconstruction_rmse = data_processing.get_score(predictions, valid_predictions)
+                if val_data is not None:
+                    predictions = self.predict(val_data.users, val_data.movies)
+                    reconstruction_rmse = data_processing.get_score(predictions, val_data.ratings)
                     pbar.set_description('Epoch {:3d}: val_loss is {:.4f}'.format(epoch, reconstruction_rmse))
 
                     writer.add_scalar('val_rmse', reconstruction_rmse, step)

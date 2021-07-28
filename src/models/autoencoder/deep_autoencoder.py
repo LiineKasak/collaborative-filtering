@@ -1,10 +1,12 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import argparse
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.utils import data_processing
-from src.models.autoencoder.torch_model_base import TorchModelTrainer
+from utils import data_processing
+from utils.dataset import DatasetWrapper
+from models.autoencoder.torch_model_base import TorchModelTrainer
 
 
 class AutoEncoderModel(torch.nn.Module):
@@ -48,10 +50,14 @@ class DeepAutoEncoder(TorchModelTrainer):
     https://arxiv.org/pdf/1708.01715.pdf
     """
 
-    def __init__(self, epochs=150, dropout=0.9, verbal=True):
-        self.dropout = dropout
-        super().__init__('auto_encoder', epochs=epochs, batch_size=128, learning_rate=0.0001,
-                         regularization=0.01, dropout=self.dropout, re_feeding=False, verbal=verbal)
+    def __init__(self, params: argparse.Namespace):
+        super().__init__('auto_encoder', epochs=params.epochs, batch_size=params.batch_size,
+                         learning_rate=params.learning_rate, regularization=params.regularization, dropout=0.9,
+                         re_feeding=False, verbal=params.verbal)
+
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(epochs=150, batch_size=128, learning_rate=0.0001, regularization=0.01, verbal=True)
 
     def build_model(self):
         return AutoEncoderModel(self.dropout).to(self.device)
@@ -63,12 +69,12 @@ class DeepAutoEncoder(TorchModelTrainer):
         unknown_mse = (1 - mask_weight) * torch.mean((1 - mask_batch) * (data_batch - output_batch) ** 2)
         return known_mse + unknown_mse
 
-    def get_dataloader(self, data: tuple):
-        users, movies, predictions = data
-        _, mask = data_processing.get_data_mask(users, movies, predictions)
+    def get_dataloader(self, data: DatasetWrapper):
+        _, mask = data_processing.get_data_mask(data.users, data.movies, data.ratings)
         unknown_users, unknown_movies, unknown_predictions = self.get_unknown()
-        data, _ = data_processing.get_data_mask(np.append(users, unknown_users), np.append(movies, unknown_movies),
-                                                np.append(predictions, unknown_predictions))
+        data, _ = data_processing.get_data_mask(np.append(data.users, unknown_users),
+                                                np.append(data.movies, unknown_movies),
+                                                np.append(data.ratings, unknown_predictions))
 
         self.data_torch = torch.tensor(data, device=self.device).float()
         self.mask_torch = torch.tensor(mask, device=self.device)

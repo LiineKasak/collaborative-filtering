@@ -1,5 +1,4 @@
 import argparse
-import pickle
 
 import numpy as np
 import torch
@@ -10,13 +9,16 @@ from models.mlp import MLP
 from models.ncf import NCF
 from models.log_reg import LogisticRegression
 from models.knn import KNNImprovedSVDEmbeddings
+from models.autoencoder.deep_autoencoder import DeepAutoEncoder
+from models.autoencoder.variational_autoencoder import VAE
+from models.autoencoder.collaborative_denoising_autoencoder import CDAE
 from utils import data_processing
 from utils.dataset import DatasetWrapper
 from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
-parser.add_argument('model', type=str, help='selected model', choices=['aumf', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp',
-                                                                       'ncf'])  # TODO
+parser.add_argument('model', type=str, help='selected model',
+                    choices=['aumf', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp', 'ncf', 'vae', 'cdae', 'ae'])  # TODO
 parser.add_argument('--mode', '-m', type=str, choices=['val', 'cv', 'submit'],
                     help='mode: validate, cross-validate (cv) or train for submission.')
 parser.add_argument('--train_split', '-split', type=float, default=0.9)
@@ -95,6 +97,12 @@ def get_model(model: str):
                    epochs=params.epochs,
                    batch_size=params.batch_size,
                    learning_rate=params.learning_rate)
+    elif model == 'vae':
+        return VAE(get_params(args, VAE.default_params()))
+    elif model == 'cdae':
+        return CDAE(get_params(args, CDAE.default_params()))
+    elif model == 'ae':
+        return DeepAutoEncoder(get_params(args, DeepAutoEncoder.default_params()))
     # TODO: add models
 
     else:

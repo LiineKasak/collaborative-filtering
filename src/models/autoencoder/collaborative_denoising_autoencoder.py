@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 import numpy as np
 from torch.utils.data import DataLoader, TensorDataset
+import argparse
 
-from src.utils import data_processing
-from src.models.autoencoder.torch_model_base import TorchModelTrainer
+from utils import data_processing
+from utils.dataset import DatasetWrapper
+from models.autoencoder.torch_model_base import TorchModelTrainer
 
 
 class CDAEModel(torch.nn.Module):
@@ -44,11 +46,17 @@ class CDAE(TorchModelTrainer):
     http://alicezheng.org/papers/wsdm16-cdae.pdf
     """
 
-    def __init__(self, epochs=25, verbal=True):
+    def __init__(self, params: argparse.Namespace):
         self.dropout = 0.9
         self.factors = 16
-        super().__init__('auto_encoder', epochs=epochs, batch_size=64, learning_rate=0.0005,
-                         regularization=0.001, dropout=self.dropout, re_feeding=False, verbal=verbal)
+        super().__init__('denoising_autoencoder', epochs=params.epochs, batch_size=params.batch_size,
+                         learning_rate=params.learning_rate,
+                         regularization=params.regularization, dropout=self.dropout, re_feeding=False,
+                         verbal=params.verbal)
+
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(epochs=25, batch_size=64, learning_rate=0.0005, regularization=0.001, verbal=True)
 
     def build_model(self):
         return CDAEModel(self.factors, self.dropout).to(self.device)
@@ -57,11 +65,11 @@ class CDAE(TorchModelTrainer):
     def mse(target, predictions):
         return torch.mean((target - predictions) ** 2)
 
-    def get_dataloader(self, data: tuple):
-        users, movies, predictions = data
+    def get_dataloader(self, data: DatasetWrapper):
         unknown_users, unknown_movies, unknown_predictions = self.get_unknown()
-        data, _ = data_processing.get_data_mask(np.append(users, unknown_users), np.append(movies, unknown_movies),
-                                                np.append(predictions, unknown_predictions))
+        data, _ = data_processing.get_data_mask(np.append(data.users, unknown_users),
+                                                np.append(data.movies, unknown_movies),
+                                                np.append(data.ratings, unknown_predictions))
         users = np.arange(data_processing.get_number_of_users())
 
         self.data_torch = torch.tensor(data, device=self.device).float()
