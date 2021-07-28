@@ -1,0 +1,3 @@
+[submodule "CF-NADE"]
+	path = CF-NADE
+	url = https://github.com/Ian09/CF-NADE.git
