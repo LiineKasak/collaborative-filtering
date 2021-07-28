@@ -12,13 +12,16 @@ from models.knn import KNNImprovedSVDEmbeddings
 from models.autoencoder.deep_autoencoder import DeepAutoEncoder
 from models.autoencoder.variational_autoencoder import VAE
 from models.autoencoder.collaborative_denoising_autoencoder import CDAE
+from models.svt import SVT
+from models.svd_als_sgd_hybrid import SVD_ALS_SGD
+from models.svt_init_svd_als_sgd_hybrid import SVT_INIT_SVD_ALS_SGD
 from utils import data_processing
 from utils.dataset import DatasetWrapper
 from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
 parser.add_argument('model', type=str, help='selected model',
-                    choices=['aumf', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp', 'ncf', 'vae', 'cdae', 'ae'])  # TODO
+                    choices=['aumf', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp', 'ncf', 'vae', 'cdae', 'ae', 'svt', 'svt_hybrid', 'svt_init_hybrid'])  # TODO
 parser.add_argument('--mode', '-m', type=str, choices=['val', 'cv', 'submit'],
                     help='mode: validate, cross-validate (cv) or train for submission.')
 parser.add_argument('--train_split', '-split', type=float, default=0.9)
@@ -103,8 +106,12 @@ def get_model(model: str):
         return CDAE(get_params(args, CDAE.default_params()))
     elif model == 'ae':
         return DeepAutoEncoder(get_params(args, DeepAutoEncoder.default_params()))
-    # TODO: add models
-
+    elif model == 'svt':
+        return SVT(get_params(args, SVT.default_params()))
+    elif model == 'svt_hybrid':
+        return SVD_ALS_SGD(get_params(args, SVD_ALS_SGD.default_params()))
+    elif model == 'svt_init_hybrid':
+        return SVT_INIT_SVD_ALS_SGD(get_params(args, SVT_INIT_SVD_ALS_SGD.default_params()))
     else:
         print("This model does not exist.")
 
