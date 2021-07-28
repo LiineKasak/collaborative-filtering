@@ -39,12 +39,14 @@ parser.add_argument('--device', '-d', type=str)
 parser.add_argument('--k_singular_values', '-k', type=int)
 parser.add_argument('--enable_bias', '-bias', type=bool)
 parser.add_argument('--n_neighbors', '-n', type=int)  # KNN neighbors
+parser.add_argument('--shrink_val', '-s', type=float)
 
 args = parser.parse_args()
 print(args)
 
 
 def get_params(params, default_params):
+    print(params.__dict__.items())
     for arg, value in params.__dict__.items():
         if value is None and hasattr(default_params, arg):
             setattr(params, arg, getattr(default_params, arg))
@@ -68,7 +70,8 @@ def get_model(model: str):
     elif model == 'log_reg':
         return LogisticRegression(get_params(args, LogisticRegression.default_params()))
     elif model == 'gmf':
-        params = get_params(args, GMF.default_params())
+        params = get_params(args, GMF.defaulta_params())
+        print(params)
         device = get_device(params.device)
         user_embedding = np.random.normal(size=(data_processing.number_of_users, params.k_singular_values))
         movie_embedding = np.random.normal(size=(data_processing.number_of_movies, params.k_singular_values))
@@ -105,6 +108,7 @@ def get_model(model: str):
     elif model == 'ae':
         return DeepAutoEncoder(get_params(args, DeepAutoEncoder.default_params()))
     elif model == 'svt':
+        print(get_params(args, SVT.default_params()))
         return SVT(get_params(args, SVT.default_params()))
     elif model == 'svt_hybrid':
         return SVD_ALS_SGD(get_params(args, SVD_ALS_SGD.default_params()))

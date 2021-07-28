@@ -30,7 +30,7 @@ class GMF(AlgoBase):
 
     @staticmethod
     def default_params():
-        return argparse.Namespace(epochs=2, batch_size=256, learning_rate=0.01, device="cpu")
+        return argparse.Namespace(epochs=2, batch_size=256, learning_rate=0.01, k_singular_values=5, device="cpu")
 
     def __init__(self, user_embedding,
                  movie_embedding,
