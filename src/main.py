@@ -1,7 +1,13 @@
 import argparse
+import pickle
+
 import numpy as np
+import torch
 from models.svd_sgd import SVD_SGD
 from models.aumf import AuMF
+from models.gmf import GMF
+from models.mlp import MLP
+from models.ncf import NCF
 from models.log_reg import LogisticRegression
 from models.knn import KNNImprovedSVDEmbeddings
 from utils import data_processing
@@ -9,7 +15,8 @@ from utils.dataset import DatasetWrapper
 from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
-parser.add_argument('model', type=str, help='selected model', choices=['aumf', 'svd_sgd', 'log_reg', 'knn'])  # TODO
+parser.add_argument('model', type=str, help='selected model', choices=['aumf', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp',
+                                                                       'ncf'])  # TODO
 parser.add_argument('--mode', '-m', type=str, choices=['val', 'cv', 'submit'],
                     help='mode: validate, cross-validate (cv) or train for submission.')
 parser.add_argument('--train_split', '-split', type=float, default=0.9)
@@ -41,6 +48,13 @@ def get_params(params, default_params):
     return params
 
 
+def get_device(name):
+    if name == "cuda" and torch.cuda.is_available():
+        return torch.device("cuda")
+    else:
+        return torch.device("cpu")
+
+
 def get_model(model: str):
     if model == 'svd_sgd':
         return SVD_SGD(get_params(args, SVD_SGD.default_params()))
@@ -50,6 +64,37 @@ def get_model(model: str):
         return KNNImprovedSVDEmbeddings(get_params(args, KNNImprovedSVDEmbeddings.default_params()))
     elif model == 'log_reg':
         return LogisticRegression(get_params(args, LogisticRegression.default_params()))
+    elif model == 'gmf':
+        params = get_params(args, GMF.default_params())
+        device = get_device(params.device)
+        user_embedding = np.random.normal(size=(data_processing.number_of_users, params.k_singular_values))
+        movie_embedding = np.random.normal(size=(data_processing.number_of_movies, params.k_singular_values))
+        return GMF(user_embedding=user_embedding,
+                   movie_embedding=movie_embedding,
+                   user_bias=np.zeros(data_processing.number_of_users),
+                   movie_bias=np.zeros(data_processing.number_of_movies),
+                   epochs=params.epochs,
+                   batch_size=params.batch_size,
+                   learning_rate=params.learning_rate,
+                   device=device)
+    elif model == 'mlp':
+        params = get_params(args, GMF.default_params())
+        device = get_device(params.device)
+        return MLP(user_embedding=None,
+                   movie_embedding=None,
+                   user_bias=None,
+                   movie_bias=None,
+                   num_epochs=params.epochs,
+                   batch_size=params.batch_size,
+                   learning_rate=params.learning_rate,
+                   device=device)
+    elif model == 'ncf':
+        params = get_params(args, NCF.default_params())
+        device = get_device(params.device)
+        return NCF(device=device,
+                   epochs=params.epochs,
+                   batch_size=params.batch_size,
+                   learning_rate=params.learning_rate)
     # TODO: add models
 
     else:

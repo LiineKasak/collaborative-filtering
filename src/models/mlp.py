@@ -1,3 +1,5 @@
+import argparse
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -63,6 +65,10 @@ class MLP(AlgoBase):
                 torch.squeeze(self.mlp(concat_embedding)) + self.bias_users[users] + self.bias_movies[movies]
             )
 
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(epochs=2, batch_size=64, learning_rate=0.001, device="cpu")
+
     def __init__(
             self,
             user_embedding,
@@ -73,8 +79,8 @@ class MLP(AlgoBase):
             batch_size,
             learning_rate,
             device,
-            user_embedding_dim=10,
-            movie_embedding_dim=10,
+            user_embedding_dim=16,
+            movie_embedding_dim=16,
     ):
         super().__init__()
         if user_embedding is None:
@@ -86,15 +92,23 @@ class MLP(AlgoBase):
             self.freeze_user_embedding = True
 
         if movie_embedding is None:
-            self.user_embedding = torch.empty(self.number_of_users, movie_embedding_dim)
-            nn.init.normal_(self.user_embedding)
+            self.movie_embedding = torch.empty(self.number_of_movies, movie_embedding_dim)
+            nn.init.normal_(self.movie_embedding)
             self.freeze_movie_embedding = False
         else:
             self.movie_embedding = torch.tensor(movie_embedding, dtype=torch.float32)
             self.freeze_movie_embedding = True
 
-        self.user_bias = user_bias
-        self.movie_bias = movie_bias
+        if user_bias is None:
+            self.user_bias = np.zeros(self.number_of_users)
+        else:
+            self.user_bias = user_bias
+
+        if movie_bias is None:
+            self.movie_bias = np.zeros(self.number_of_movies)
+        else:
+            self.movie_bias = movie_bias
+
         self.num_epochs = num_epochs
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -103,9 +117,9 @@ class MLP(AlgoBase):
 
     def make_model(
             self,
-            dropout=(0.5, 0.4, 0.3),
+            dropout=(0, 0, 0),
             hidden_activation=nn.ReLU(),
-            output_activation=nn.Identity(),
+            output_activation=Tanh(),
     ):
         return self.Model(
             self.user_embedding,
@@ -125,7 +139,7 @@ class MLP(AlgoBase):
             test_data,
             device=self.device,
             model=self.model,
-            optimizer=optim.Adam(self.model.parameters(), lr=self.learning_rate, weight_decay=10),
+            optimizer=optim.SGD(self.model.parameters(), lr=self.learning_rate, weight_decay=0),
             num_epochs=self.num_epochs,
             batch_size=self.batch_size,
         )
@@ -173,35 +187,3 @@ class MLP(AlgoBase):
 
     def save(self, filename: str):
         torch.save(self.model, filename)
-
-
-if __name__ == '__main__':
-    from argparse import ArgumentParser
-    from utils.experiment import run_experiment
-    import pickle
-    from models.svt_svd import SVT_SVD
-
-
-    def parser_setup(parser: ArgumentParser):
-        parser.add_argument('--svd', type=str, help='SVD pickle')
-
-
-    def model_factory(args, device):
-        svd = pickle.load(open(args.svd, 'rb'))
-        return MLP(
-            svd.pu,
-            svd.qi,
-            svd.bu,
-            svd.bi,
-            num_epochs=args.epochs,
-            batch_size=args.batch_size,
-            learning_rate=args.lr,
-            device=device
-        )
-
-
-    run_experiment(
-        'MLP',
-        parser_setup,
-        model_factory,
-    )
