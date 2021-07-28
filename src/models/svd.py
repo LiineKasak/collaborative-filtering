@@ -1,5 +1,6 @@
 import numpy as np
-from ..utils import data_processing
+from utils import data_processing
+from utils.dataset import DatasetWrapper
 from .algobase import AlgoBase
 
 
@@ -14,8 +15,8 @@ class SVD(AlgoBase):
         self.k = k_singular_values  # number of singular values to use
         self.reconstructed_matrix = np.zeros((self.number_of_movies, self.number_of_movies))
 
-    def fit(self, users, movies, predictions):
-        matrix, _ = data_processing.get_data_mask(users, movies, predictions)
+    def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
+        matrix, _ = data_processing.get_data_mask(train_data.users, train_data.movies, train_data.ratings)
         U, s, Vt = np.linalg.svd(matrix, full_matrices=False)
 
         S = np.zeros((self.number_of_movies, self.number_of_movies))
