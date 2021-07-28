@@ -1,8 +1,6 @@
 import argparse
 
 import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
 from utils import data_processing
 from models.algobase import AlgoBase
 from models.svd import SVD
@@ -14,12 +12,10 @@ from tqdm import tqdm
 from collections import defaultdict
 from sklearn.model_selection import KFold
 
-EPSILON = 1e-5
-
 
 class SVT_INIT_SVD_ALS_SGD(AlgoBase):
     """
-    Running SGD on SVD on pu qi paramteres only. Baseline parameters bu and bi are preloaded
+    Running SGD on SVD on pu qi parameters only. Baseline parameters bu and bi are preloaded
     and were calculated with ALS. Init matrix is result of Singular Value Thresholding algorithm.
     """
     def __init__(self, params: argparse.Namespace):

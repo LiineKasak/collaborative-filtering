@@ -12,7 +12,6 @@ import time
 
 from scipy import sparse
 
-EPSILON = 1e-5
 
 class SVT(AlgoBase):
     """
@@ -40,14 +39,15 @@ class SVT(AlgoBase):
 
     @staticmethod
     def default_params():
-        return argparse.Namespace(k_singular_values=12, shrink_val =100000, max_it=2000, learning_rate=1.99, verbal=False)
+        return argparse.Namespace(k_singular_values=12, shrink_val=100000, max_it=2000, learning_rate=1.99,
+                                  verbal=False)
 
     def _update_reconstructed_matrix(self):
         U, s, Vt = np.linalg.svd(self.Xopt, full_matrices=False)
 
         S = np.zeros((self.number_of_movies, self.number_of_movies))
         S[:self.k_singular_values, :self.k_singular_values] = np.diag(s[:self.k_singular_values])
- 
+
         self.reconstructed_matrix = U.dot(S).dot(Vt)
         print(self.reconstructed_matrix[0][0])
 
@@ -68,28 +68,29 @@ class SVT(AlgoBase):
 
                 self.Xk = np.zeros((self.number_of_users, self.number_of_movies))
 
-                for i in range(998,-1,-1):
-                    if(s[i] > self.shrink_val):
-                        self.Xk += (s[i]-self.shrink_val)*(np.outer(U[:,i], Vt[i,:]))
+                for i in range(998, -1, -1):
+                    if (s[i] > self.shrink_val):
+                        self.Xk += (s[i] - self.shrink_val) * (np.outer(U[:, i], Vt[i, :]))
                     else:
                         break
-                diff = np.linalg.norm(self.mask*(self.Xk-self.data))/np.linalg.norm(self.data)
-                if(diff <= EPSILON):
+                diff = np.linalg.norm(self.mask * (self.Xk - self.data)) / np.linalg.norm(self.data)
+                if (diff <= EPSILON):
                     break
-                self.Yk = self.Yk + self.learning_rate*(self.mask*((self.data-self.Xk)))
+                self.Yk = self.Yk + self.learning_rate * (self.mask * ((self.data - self.Xk)))
                 self.Xopt = self.Xk
                 self.Yopt = self.Yk
-            
+
                 if (iter % 10 == 0):
                     self._update_reconstructed_matrix()
                     predictions = self.predict(users, movies)
                     rmse_loss = data_processing.get_score(predictions, ground_truth)
                     writer.add_scalar('rmse', rmse_loss, iter)
-                    
+
                     if test_data:
                         valid_predictions = self.predict(test_data.users, test_data.movies)
                         reconstruction_rmse = data_processing.get_score(valid_predictions, test_data.ratings)
-                        pbar.set_description(f'Iteration {iter}:  rmse {rmse_loss:.4f}, val_rmse {reconstruction_rmse:.4f}')
+                        pbar.set_description(
+                            f'Iteration {iter}:  rmse {rmse_loss:.4f}, val_rmse {reconstruction_rmse:.4f}')
                         writer.add_scalar('val_rmse', reconstruction_rmse, iter)
                         rmse = reconstruction_rmse
                     else:
@@ -104,7 +105,7 @@ class SVT(AlgoBase):
         predictions[predictions > 5] = 5
         predictions[predictions < 1] = 1
         return predictions
-    
+
     def cross_validate(self, data_pd, folds=5, random_state=42):
         """ Run Crossvalidation using kfold, taking a pandas-dataframe of the raw data as input
             (as it is read in from the .csv file) """
@@ -114,26 +115,27 @@ class SVT(AlgoBase):
         counter = 0
 
         cv_svt_matrix_filenames = ['svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-005714.npy',
-        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-080627.npy',
-        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-151440.npy',
-        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-222641.npy',
-        'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210724-054423.npy']
+                                   'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-080627.npy',
+                                   'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-151440.npy',
+                                   'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-222641.npy',
+                                   'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210724-054423.npy']
 
-        bar = tqdm(total=folds,  desc='cross_validation')
-        
+        bar = tqdm(total=folds, desc='cross_validation')
+
         for train_index, test_index in kfold.split(data_pd):
             train_users, train_movies, train_predictions = data_processing.extract_users_items_predictions(
                 data_pd.iloc[train_index])
             val_users, val_movies, val_predictions = data_processing.extract_users_items_predictions(
                 data_pd.iloc[test_index])
 
-            with open(data_processing.get_project_directory() + '/data/phase1_precomputed_matrix/' + cv_svt_matrix_filenames[counter], 'rb') as f:
-                self.Xopt =  np.load(f, allow_pickle=True)
+            with open(data_processing.get_project_directory() + '/data/phase1_precomputed_matrix/' +
+                      cv_svt_matrix_filenames[counter], 'rb') as f:
+                self.Xopt = np.load(f, allow_pickle=True)
                 self.Y0 = np.load(f, allow_pickle=True)
 
             self._update_reconstructed_matrix()
             counter += 1
-            
+
             predictions = self.predict(val_users, val_movies)
             rmses.append(data_processing.get_score(predictions, val_predictions))
 

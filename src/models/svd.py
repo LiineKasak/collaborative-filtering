@@ -1,19 +1,26 @@
+import argparse
+
 import numpy as np
 from utils import data_processing
 from utils.dataset import DatasetWrapper
-from .algobase import AlgoBase
+from models.algobase import AlgoBase
 
 
 class SVD(AlgoBase):
     """ Prediction based on dimensionality reduction through singular value decomposition """
-    def __init__(self, k_singular_values, track_to_comet=False):
-        AlgoBase.__init__(self, track_to_comet)
+
+    def __init__(self, params : argparse.Namespace):
+        AlgoBase.__init__(self,)
 
         number_of_singular_values = min(self.number_of_users, self.number_of_movies)
-        assert (k_singular_values <= number_of_singular_values), "svd received invalid number of singular values (too large)"
+        assert (params.k_singular_values <= number_of_singular_values), "svd received invalid number of singular values (too large)"
 
-        self.k = k_singular_values  # number of singular values to use
+        self.k = params.k_singular_values  # number of singular values to use
         self.reconstructed_matrix = np.zeros((self.number_of_movies, self.number_of_movies))
+
+    @staticmethod
+    def default_params():
+        return argparse.Namespace(k_singular_values=5)
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         matrix, _ = data_processing.get_data_mask(train_data.users, train_data.movies, train_data.ratings)

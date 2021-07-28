@@ -11,6 +11,7 @@ from models.algobase import AlgoBase
 
 
 class TorchModelTrainer(AlgoBase):
+    """ Trainer base used for Autoencoder implementations. """
 
     def predict(self, users, movies):
         raise NotImplementedError("predict-function has to be implemented! ")

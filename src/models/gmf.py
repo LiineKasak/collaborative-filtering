@@ -11,6 +11,8 @@ from ray import tune
 
 
 class GMF(AlgoBase):
+    """ Generalized Matrix Factorization """
+
     class Model(nn.Module):
         def __init__(self, user_embedding, movie_embedding, user_bias, movie_bias):
             super().__init__()

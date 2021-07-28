@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.model_selection import train_test_split
 from utils import data_processing
 from models.algobase import AlgoBase
 from models.svd import SVD
@@ -10,17 +9,16 @@ from collections import defaultdict
 from utils.dataset import DatasetWrapper
 import argparse
 
-EPSILON = 1e-5
 
 class SVD_ALS_SGD(AlgoBase):
     """
     SVD-based MF with hybrid optimization. Baseline vectors are optimized with ALS.
-    Then, baseline vectors are fixed as constant and user and item matrices are optmized using SGD. 
+    Then, baseline vectors are fixed as constant and user and item matrices are optimized using SGD.
     """
 
     def __init__(self, params: argparse.Namespace):
         AlgoBase.__init__(self)
-                
+
         self.k = params.k_singular_values  # number of singular values to use
         self.epochs = params.epochs
         self.learning_rate = params.learning_rate
@@ -42,7 +40,8 @@ class SVD_ALS_SGD(AlgoBase):
 
     @staticmethod
     def default_params():
-        return argparse.Namespace(k_singular_values=12, epochs=75, learning_rate=0.001, regularization=0.05, verbal=False)
+        return argparse.Namespace(k_singular_values=12, epochs=75, learning_rate=0.001, regularization=0.05,
+                                  verbal=False)
 
     def _update_reconstructed_matrix(self):
         dot_product = self.pu.dot(self.qi.T)
@@ -56,7 +55,7 @@ class SVD_ALS_SGD(AlgoBase):
 
         for i in range(len(train_user_ids)):
             ur[train_user_ids[i]].append((train_movie_ids[i], train_ratings[i]))
-    
+
         for i in range(len(train_movie_ids)):
             ir[train_movie_ids[i]].append((train_user_ids[i], train_ratings[i]))
 
@@ -73,7 +72,7 @@ class SVD_ALS_SGD(AlgoBase):
                     item_idx = ur[u][idx][0]
                     rating = ur[u][idx][1]
                     sum_u += rating - self.bi[item_idx]
-                self.bu[u] = (sum_u/(reg_u+len(ur[u])))
+                self.bu[u] = (sum_u / (reg_u + len(ur[u])))
 
             for i in ir:
                 sum_i = 0
@@ -81,7 +80,7 @@ class SVD_ALS_SGD(AlgoBase):
                     user_idx = ir[i][idx][0]
                     rating = ir[i][idx][1]
                     sum_i += rating - self.bu[user_idx]
-                self.bi[i] = (sum_i/(reg_i+len(ir[i])))
+                self.bi[i] = (sum_i / (reg_i + len(ir[i])))
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         users, movies, ground_truth = train_data.users, train_data.movies, train_data.ratings

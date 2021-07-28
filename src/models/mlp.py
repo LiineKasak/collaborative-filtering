@@ -10,6 +10,7 @@ from ray import tune
 
 
 class MLP(AlgoBase):
+    """ Multi-Layer Perceptron """
 
     class Sigmoid(nn.Module):
         def forward(self, x):

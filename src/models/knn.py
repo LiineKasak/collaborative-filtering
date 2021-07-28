@@ -5,11 +5,10 @@ from utils import data_processing
 from models.algobase import AlgoBase
 from models.svd_sgd import SVD_SGD
 
-eps = 1e-6
-
 
 class KNNImprovedSVDEmbeddings(AlgoBase):
-    """ Prediction based on dimensionality reduction through singular value decomposition """
+    """ Compute nearest neighbours using SVD User-Embeddings.
+    Predict average reating of k nearest neighbours for a given user u """
 
     def __init__(self, params: argparse.Namespace):
         AlgoBase.__init__(self)

@@ -1,5 +1,4 @@
 import argparse
-
 import numpy as np
 import torch
 from models.svd_sgd import SVD_SGD
@@ -21,7 +20,7 @@ from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
 parser.add_argument('model', type=str, help='selected model',
-                    choices=['aumf', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp', 'ncf', 'vae', 'cdae', 'ae', 'svt', 'svt_hybrid', 'svt_init_hybrid'])  # TODO
+                    choices=['aumf', 'svd', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp', 'ncf', 'vae', 'cdae', 'ae', 'svt', 'svt_hybrid', 'svt_init_hybrid'])
 parser.add_argument('--mode', '-m', type=str, choices=['val', 'cv', 'submit'],
                     help='mode: validate, cross-validate (cv) or train for submission.')
 parser.add_argument('--train_split', '-split', type=float, default=0.9)
@@ -40,7 +39,6 @@ parser.add_argument('--device', '-d', type=str)
 parser.add_argument('--k_singular_values', '-k', type=int)
 parser.add_argument('--enable_bias', '-bias', type=bool)
 parser.add_argument('--n_neighbors', '-n', type=int)  # KNN neighbors
-# TODO add other custom params from different models
 
 args = parser.parse_args()
 print(args)

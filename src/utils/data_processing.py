@@ -1,13 +1,11 @@
 """ Mostly functions adapted from the ones in the jupyter notebook provided by the course """
 import math
 from collections import defaultdict
-from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error
 from pathlib import Path
 import os
-from surprise import Dataset, Reader
 
 number_of_users, number_of_movies = (10000, 1000)
 
@@ -106,33 +104,6 @@ def get_users_movies_to_predict():
     return sub_users, sub_movies
 
 
-def load_surprise_dataframe_from_arrays(users, movies, predictions):
-    # Creation of the dataframe. Column names are irrelevant.
-    ratings_dict = {'users': users,
-                    'items': movies,
-                    'predictions': predictions}
-    df = pd.DataFrame(ratings_dict)
-
-    # The columns must correspond to user id, item id and ratings (in that order).
-    reader = Reader(rating_scale=(1, 5))
-    data = Dataset.load_from_df(df[['users', 'items', 'predictions']], reader=reader)
-    return data
-
-
-def load_surprise_dataframe_from_pd(data_pd):
-    items, users, predictions = extract_users_items_predictions(data_pd)
-
-    # Creation of the dataframe. Column names are irrelevant.
-    ratings_dict = {'users': users,
-                    'items': items,
-                    'predictions': predictions}
-    df = pd.DataFrame(ratings_dict)
-
-    # The columns must correspond to user id, item id and ratings (in that order).
-    reader = Reader(rating_scale=(1, 5))
-    data = Dataset.load_from_df(df[['users', 'items', 'predictions']], reader=reader)
-    return data
-
 def create_validation_file(users, movies, predictions, ground_truth_predicitons, name='validation'):
     """
     create a file storing (for a given prediction), the users, movies, prediction and the ground_truth
@@ -141,7 +112,7 @@ def create_validation_file(users, movies, predictions, ground_truth_predicitons,
 
     directory_path = get_project_directory()
 
-    pred_pd = pd.DataFrame(columns=['User', 'Movie','Prediction', 'GroundTruth'])
+    pred_pd = pd.DataFrame(columns=['User', 'Movie', 'Prediction', 'GroundTruth'])
     pred_pd['User'] = users
     pred_pd['Movie'] = movies
     pred_pd['Prediction'] = predictions
@@ -169,11 +140,6 @@ def create_submission_file(sub_users, sub_movies, predictions, name='submission'
                    index=False,
                    compression={'method': 'zip', 'archive_name': name + '.csv'}
                    )
-
-    # submit from terminal:
-
-    # submit from terminal:
-    # !kaggle competitions submit cil-collaborative-filtering-2021 -f ./data/submissions/name.csv.zip -m '<message>'
 
 
 def create_dicts(users, movies, ratings):

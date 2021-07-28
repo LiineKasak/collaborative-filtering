@@ -63,10 +63,6 @@ class AuMF(AlgoBase):
         return predictions
 
     def cross_validate(self, data_pd, folds=5, random_state=42):
-        """ Run Crossvalidation using kfold, taking a pandas-dataframe of the raw data as input
-                  (as it is read in from the .csv file)
-
-        """
         kfold = KFold(n_splits=folds, shuffle=True, random_state=random_state)
 
         rmses = []

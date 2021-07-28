@@ -4,12 +4,13 @@ import torch.nn as nn
 import torch.optim as optim
 from models.gmf import GMF
 from models.mlp import MLP
-from .algobase import AlgoBase
+from models.algobase import AlgoBase
 from utils.fitting import train
 from utils.dataset import DatasetWrapper
 
 
 class NCF(AlgoBase):
+    """ Neural Collaborative Filtering Base"""
 
     class Model(nn.Module):
         def __init__(self, gmf, mlp):
