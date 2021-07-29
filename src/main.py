@@ -23,10 +23,12 @@ parser.add_argument('model', type=str, help='selected model',
                     choices=['aumf', 'svd', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp', 'ncf', 'vae', 'cdae', 'ae',
                              'svt', 'svt_hybrid', 'svt_init_hybrid'])
 parser.add_argument('--mode', '-m', type=str, choices=['val', 'cv', 'submit'], default='val',
-                    help='mode: validate, cross-validate (cv) or train for submission.')
-parser.add_argument('--train_split', '-split', type=float, default=0.9)
-parser.add_argument('--folds', '-f', type=int, default=5)
-parser.add_argument('--submission', type=str, default='submission', help='Submission file name if mode=\'submit\'.')
+                    help='mode: validate, cross-validate (cv) or train for submission (default: \'val\').')
+parser.add_argument('--train_split', '-split', type=float, default=0.9,
+                    help='Train portion of dataset if mode=\'val\' (default: 0.9). Must satisfy 0 < train_split < 1.')
+parser.add_argument('--folds', '-f', type=int, default=5, help='Number of folds if mode=\'cv\' (default: 5).')
+parser.add_argument('--submission', type=str, default='submission',
+                    help='Submission file name if mode=\'submit\' (default: \'submission\').')
 parser.add_argument('--verbal', '-v', type=bool)
 
 # often used arguments

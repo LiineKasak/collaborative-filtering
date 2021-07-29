@@ -81,11 +81,13 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --mode {val,cv,submit}, -m {val,cv,submit}
-                        mode: validate, cross-validate (cv) or train for submission.
+                        mode: validate, cross-validate (cv) or train for submission (default: 'val').
   --train_split TRAIN_SPLIT, -split TRAIN_SPLIT
+                        Train portion of dataset if mode='val' (default: 0.9). Must satisfy 0 < train_split < 1.
   --folds FOLDS, -f FOLDS
+                        Number of folds if mode='cv' (default: 5).
   --submission SUBMISSION
-                        Submission file name if mode='submit'.
+                        Submission file name if mode='submit' (default: 'submission').
   --verbal VERBAL, -v VERBAL
   --epochs EPOCHS, -e EPOCHS
   --learning_rate LEARNING_RATE, -lr LEARNING_RATE
