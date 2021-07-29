@@ -38,11 +38,6 @@ class TorchModelTrainer(AlgoBase):
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate,
                                           weight_decay=self.regularization)
 
-    def get_unknown(self):
-        # results from SVD_SGD
-        unknown_values_pd = pd.read_csv(data_processing.get_project_directory() + '\data\svd_sgd_valid_seed42.csv.zip')
-        return data_processing.extract_users_items_predictions(unknown_values_pd)
-
     def build_model(self):
         raise NotImplementedError("build_model-function has to be implemented! ")
 

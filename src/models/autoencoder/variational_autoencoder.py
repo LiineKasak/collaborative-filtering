@@ -70,11 +70,7 @@ class VAE(TorchModelTrainer):
         return bce + kld
 
     def get_dataloader(self, data: DatasetWrapper):
-        _, mask = data_processing.get_data_mask(data.users, data.movies, data.ratings)
-        unknown_users, unknown_movies, unknown_predictions = self.get_unknown()
-        data, _ = data_processing.get_data_mask(np.append(data.users, unknown_users),
-                                                np.append(data.movies, unknown_movies),
-                                                np.append(data.ratings, unknown_predictions))
+        data, mask = data_processing.get_data_mask(data.users, data.movies, data.ratings)
 
         self.data_torch = (torch.tensor(data, device=self.device).float() - 1) / 4
         self.mask_torch = torch.tensor(mask, device=self.device)

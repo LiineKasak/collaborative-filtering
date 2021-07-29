@@ -66,10 +66,7 @@ class CDAE(TorchModelTrainer):
         return torch.mean((target - predictions) ** 2)
 
     def get_dataloader(self, data: DatasetWrapper):
-        unknown_users, unknown_movies, unknown_predictions = self.get_unknown()
-        data, _ = data_processing.get_data_mask(np.append(data.users, unknown_users),
-                                                np.append(data.movies, unknown_movies),
-                                                np.append(data.ratings, unknown_predictions))
+        data, _ = data_processing.get_data_mask(data.users, data.movies, data.ratings)
         users = np.arange(data_processing.get_number_of_users())
 
         self.data_torch = torch.tensor(data, device=self.device).float()

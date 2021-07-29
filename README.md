@@ -45,22 +45,22 @@ To reproduce the results of different models, `main.py` should be run from comma
 ### Models
 As a required positional argument, the model must be selected.
 
-| Argument        | Corresponding model                                  |
-|-----------------|------------------------------------------------------|
-| aumf            | Augmented Matrix Factorization (MF)                  |
-| svd             | Plain Singular Value Decomposition (SVD)             |
-| svd_sgd         | SVD-based MF using Stochastic Gradient Descent (SGD) |
-| log_reg         | Logistic Regression                                  |
-| knn             | K Nearest Neighbours                                 |
-| gmf             | Generalized Matrix Factorization                     |
-| mlp             | Multi-Layer Perceptron                               |
-| ncf             | Neural Collaborative Filtering                       |
-| vae             | Variational Autoencoder                              |
-| cdae            | Collaborative Denousing Autoencoder                  |
-| ae              | Deep Autoencoder                                     |
-| svt             | Singular Value Thresholding (SVT)                    |
-| svt_hybrid      | SVD-based MF using hybrid optimization               |
-| svt_init_hybrid | SVT intialized SVD-based MF with hybrid opt.         |
+| Argument        | Corresponding model                                  | CV score |
+|-----------------|------------------------------------------------------|:--------:|
+| gmf             | Generalized Matrix Factorization                     | 1.1689   |
+| mlp             | Multi-Layer Perceptron                               | 1.1562   |
+| ncf             | Neural Collaborative Filtering                       | 1.1474   |
+| ae              | Deep Autoencoder                                     | 1.1282   |
+| cdae            | Collaborative Denousing Autoencoder                  | 1.0930   |
+| vae             | Variational Autoencoder                              | 1.0919   |
+| svd             | Plain Singular Value Decomposition (SVD)             | 1.0712   |
+| svt             | Singular Value Thresholding (SVT)                    | 1.0389   |
+| knn             | K Nearest Neighbours                                 | 1.0290   |
+| svd_sgd         | SVD-based MF using Stochastic Gradient Descent (SGD) | 0.9842   |
+| log_reg         | Logistic Regression                                  | 0.9831   |
+| svt_hybrid      | SVD-based MF using hybrid optimization               | 0.9831   |
+| svt_init_hybrid | SVT intialized SVD-based MF with hybrid opt.         | 0.9817   |
+| aumf            | Augmented Matrix Factorization (MF)                  | 0.9805   |
 
 ### Commandline help
 Example output running ```python main.py --help```:
