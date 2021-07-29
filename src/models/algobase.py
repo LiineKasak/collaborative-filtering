@@ -71,8 +71,6 @@ class AlgoBase:
             rmse = data_processing.get_score(predictions, val_predictions)
             rmses.append(rmse)
 
-            print(rmse)
-
             bar.update()
 
         bar.close()

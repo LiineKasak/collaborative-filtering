@@ -20,8 +20,9 @@ from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser(description='Train (, validate and save) a collaborative filtering model.')
 parser.add_argument('model', type=str, help='selected model',
-                    choices=['aumf', 'svd', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp', 'ncf', 'vae', 'cdae', 'ae', 'svt', 'svt_hybrid', 'svt_init_hybrid'])
-parser.add_argument('--mode', '-m', type=str, choices=['val', 'cv', 'submit'],
+                    choices=['aumf', 'svd', 'svd_sgd', 'log_reg', 'knn', 'gmf', 'mlp', 'ncf', 'vae', 'cdae', 'ae',
+                             'svt', 'svt_hybrid', 'svt_init_hybrid'])
+parser.add_argument('--mode', '-m', type=str, choices=['val', 'cv', 'submit'], default='val',
                     help='mode: validate, cross-validate (cv) or train for submission.')
 parser.add_argument('--train_split', '-split', type=float, default=0.9)
 parser.add_argument('--folds', '-f', type=int, default=5)
@@ -42,14 +43,13 @@ parser.add_argument('--n_neighbors', '-n', type=int)  # KNN neighbors
 parser.add_argument('--shrink_val', '-s', type=float)
 
 args = parser.parse_args()
-print(args)
 
 
 def get_params(params, default_params):
-    print(params.__dict__.items())
     for arg, value in params.__dict__.items():
         if value is None and hasattr(default_params, arg):
             setattr(params, arg, getattr(default_params, arg))
+    print('Running with parameters: ', params.__dict__.items())
     return params
 
 
@@ -71,7 +71,6 @@ def get_model(model: str):
         return LogisticRegression(get_params(args, LogisticRegression.default_params()))
     elif model == 'gmf':
         params = get_params(args, GMF.defaulta_params())
-        print(params)
         device = get_device(params.device)
         user_embedding = np.random.normal(size=(data_processing.number_of_users, params.k_singular_values))
         movie_embedding = np.random.normal(size=(data_processing.number_of_movies, params.k_singular_values))
@@ -108,7 +107,6 @@ def get_model(model: str):
     elif model == 'ae':
         return DeepAutoEncoder(get_params(args, DeepAutoEncoder.default_params()))
     elif model == 'svt':
-        print(get_params(args, SVT.default_params()))
         return SVT(get_params(args, SVT.default_params()))
     elif model == 'svt_hybrid':
         return SVD_ALS_SGD(get_params(args, SVD_ALS_SGD.default_params()))

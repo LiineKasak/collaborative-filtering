@@ -49,7 +49,6 @@ class SVT(AlgoBase):
         S[:self.k_singular_values, :self.k_singular_values] = np.diag(s[:self.k_singular_values])
 
         self.reconstructed_matrix = U.dot(S).dot(Vt)
-        print(self.reconstructed_matrix[0][0])
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         users, movies, ground_truth = train_data.users, train_data.movies, train_data.ratings
@@ -151,5 +150,4 @@ class SVT(AlgoBase):
                     "root_mean_squared_error": mean_rmse
                 }
             )
-        print(rmses)
         return rmses
