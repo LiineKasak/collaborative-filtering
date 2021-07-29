@@ -68,7 +68,7 @@ class MLP(AlgoBase):
 
     @staticmethod
     def default_params():
-        return argparse.Namespace(epochs=2, batch_size=64, learning_rate=0.001, device="cpu")
+        return argparse.Namespace(epochs=3, batch_size=64, learning_rate=0.001, device="cpu")
 
     def __init__(
             self,

@@ -47,7 +47,7 @@ As a required positional argument, the model must be selected.
 
 | Argument        | Corresponding model                                  | CV score |
 |-----------------|------------------------------------------------------|:--------:|
-| gmf             | Generalized Matrix Factorization                     | 1.1689   |
+| gmf             | Generalized Matrix Factorization                     | 1.1688   |
 | mlp             | Multi-Layer Perceptron                               | 1.1562   |
 | ncf             | Neural Collaborative Filtering                       | 1.1474   |
 | ae              | Deep Autoencoder                                     | 1.1282   |
@@ -112,3 +112,8 @@ The `mode` argument specifies how the model will be trained and validated. By de
 
 ### Equivalence to results in the report
 If no other arguments are specified, default fine-tuned hyperparameters are set for each model, and the models will behave exactly as described in our report. However, we leave the option to experiment with models open.
+
+### CF-NADE
+The experiments with CF-NADE were run using the original implementation of Zheng et al. which is not compatible with the rest of our code.
+The implementation can be found in the CF-NADE directory and should be run with Python 2.
+Converting our dataset to the proper MovieLens format used by the CF-NADE implementation can be done with `src/utils/movielens-transform.py`. 

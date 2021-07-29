@@ -72,14 +72,12 @@ def get_model(model: str):
     elif model == 'log_reg':
         return LogisticRegression(get_params(args, LogisticRegression.default_params()))
     elif model == 'gmf':
-        params = get_params(args, GMF.defaulta_params())
+        params = get_params(args, GMF.default_params())
         device = get_device(params.device)
-        user_embedding = np.random.normal(size=(data_processing.number_of_users, params.k_singular_values))
-        movie_embedding = np.random.normal(size=(data_processing.number_of_movies, params.k_singular_values))
-        return GMF(user_embedding=user_embedding,
-                   movie_embedding=movie_embedding,
-                   user_bias=np.zeros(data_processing.number_of_users),
-                   movie_bias=np.zeros(data_processing.number_of_movies),
+        return GMF(user_embedding=None,
+                   movie_embedding=None,
+                   user_bias=None,
+                   movie_bias=None,
                    epochs=params.epochs,
                    batch_size=params.batch_size,
                    learning_rate=params.learning_rate,

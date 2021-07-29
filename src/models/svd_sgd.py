@@ -1,5 +1,4 @@
 import numpy as np
-from sklearn.model_selection import train_test_split
 from utils import data_processing
 from models.algobase import AlgoBase
 from models.svd import SVD
