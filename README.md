@@ -62,6 +62,11 @@ As a required positional argument, the model must be selected.
 | svt_init_hybrid | SVT intialized SVD-based MF with hybrid opt.         | 0.9817   |
 | aumf            | Augmented Matrix Factorization (MF)                  | 0.9805   |
 
+### Reproducing Kaggle Submission
+```
+python src/main.py aumf --mode submit
+```
+
 ### Commandline help
 Example output running ```python main.py --help```:
 
