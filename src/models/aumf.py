@@ -39,7 +39,7 @@ class AuMF(AlgoBase):
 
     def fit(self, train_data: DatasetWrapper, test_data: DatasetWrapper = None):
         # path of the pretrained model (if it exists)
-        self.svt_precompute_path = data_processing.get_project_directory() + f'{os.sep}data{os.sep}phase2_pretrained_model{os.sep}svt_precomputed{os.sep}svt_advanced_{self.svt_hybrid.k}{self.fold}.pickle'
+        self.svt_precompute_path = data_processing.get_project_directory() + f'{os.sep}data{os.sep}phase2_pretrained_model{os.sep}svt_advanced_{self.svt_hybrid.k}{self.fold}.pickle'
         if not self.use_pretrained_svd:
             self.svt_hybrid.fit(train_data)
             self.svt_hybrid.save(self.svt_precompute_path)  # export model
