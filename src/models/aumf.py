@@ -15,13 +15,13 @@ import pickle
 class AuMF(AlgoBase):
     """ Augmented Matrix Factorization """
 
-    def __init__(self, params: argparse.Namespace):
+    def __init__(self, params: argparse.Namespace, use_pretrained_svd=True):
         AlgoBase.__init__(self)
         svt_params = SVT_INIT_SVD_ALS_SGD.default_params()
         self.svt_hybrid = SVT_INIT_SVD_ALS_SGD(svt_params)
         self.gmf = None
 
-        self.use_pretrained_svd = True
+        self.use_pretrained_svd = use_pretrained_svd
 
         self.device = params.device
         self.epochs = params.epochs

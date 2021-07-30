@@ -66,7 +66,9 @@ def get_model(model: str):
     if model == 'svd_sgd':
         return SVD_SGD(get_params(args, SVD_SGD.default_params()))
     elif model == 'aumf':
-        return AuMF(get_params(args, AuMF.default_params()))
+        params = get_params(args, AuMF.default_params())
+        use_precomputed = params.mode == 'cv'
+        return AuMF(params=params, use_pretrained_svd=use_precomputed)
     elif model == 'knn':
         return KNNImprovedSVDEmbeddings(get_params(args, KNNImprovedSVDEmbeddings.default_params()))
     elif model == 'log_reg':

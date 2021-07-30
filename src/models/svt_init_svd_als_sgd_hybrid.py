@@ -44,7 +44,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
             'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210723-222641.npy',
             'svt_Xopt_Yk_sh100k_0_to_2000_CV_20210724-054423.npy'
         ]
-        self.svt_init_matrix_path = '/data/phase1_precomputed_matrix/svt_Xopt_Yk_sh100k_0_to_2000_Submit.npy'
+        self.svt_init_matrix_path = '/data/phase1_precomputed_matrix/svt_Xopt_Yk_sh100k_2000_to_2500_Submit.npy'
         self.svt_matrix = np.zeros((self.number_of_users, self.number_of_movies))
 
         self.mu = 0
@@ -52,7 +52,7 @@ class SVT_INIT_SVD_ALS_SGD(AlgoBase):
     @staticmethod
     def default_params():
         return argparse.Namespace(k_singular_values=12, epochs=43, learning_rate=0.001, regularization=0.05,
-                                  verbal=False)
+                                  verbal=True)
 
     def _update_reconstructed_matrix(self):
         dot_product = self.pu.dot(self.qi.T)
